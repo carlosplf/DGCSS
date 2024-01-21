@@ -10,9 +10,9 @@ class GATLayer(torch.nn.Module):
         super(GATLayer, self).__init__()
 
         self.gat_conv1 = GATConv(in_channels, hidden_channels,
-                                 heads=heads, add_self_loops=False)
+                                 heads=heads, add_self_loops=True)
         self.gat_conv2 = GATConv(hidden_channels * heads, out_channels,
-                                 heads=1, add_self_loops=False)
+                                 heads=1, add_self_loops=True)
 
     # IMPORTANT: Just the last layer is being returned by this method.
     def forward(self, x, edge_index):
