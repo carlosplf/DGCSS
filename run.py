@@ -2,7 +2,9 @@ import networkx as nx
 import torch
 import numpy as np
 from utils.utils import edges_to_edgeindex
+from utils.utils import remove_min_weight_edges
 from utils.graph_viewer import show_graph
+from utils.graph_viewer import plot_weights
 from gat_model import gat_model
 import torch_geometric.utils as utils
 from torch_geometric.nn import GAE
@@ -99,7 +101,7 @@ def run():
     for epoch in range(epochs):
         loss, H_L, att_tuple = train_network(gae, optimizer, dataset)
         if epoch % 10 == 0:
-            print(loss)
+            print("Loss:", loss)
         losses.append(loss)
         embs_list.append(H_L)
 
@@ -110,6 +112,22 @@ def run():
 
     for i in range(len(weight)):
         G.add_edge(src[i].item(), tgt[i].item(), weight=weight[i].item())
+
+    # Plot original graph with edge weights
+    plot_weights(G, communities)
+
+    remove_edges(G, communities)
+
+
+def remove_edges(G, communities):
+    # Remove weights with small weights, based on the Attention values.
+    num_rem = 0
+    for i in range(4):
+        # while nx.number_connected_components(G.to_undirected()) != 3:
+        G = remove_min_weight_edges(G)
+        num_rem += 1
+
+    plot_weights(G, communities)
 
 
 if __name__ == "__main__":

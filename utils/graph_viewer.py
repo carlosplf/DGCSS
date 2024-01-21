@@ -1,4 +1,6 @@
 from plotly import graph_objs as go
+import matplotlib.pyplot as plt
+import networkx as nx
 
 
 # Função de plot
@@ -66,3 +68,29 @@ def show_graph(G):
                         showticklabels=False))
                     )
     fig.show()
+
+
+def plot_weights(G, communities):
+    weights = [edata['weight'] for u, v, edata in G.edges(data=True)]
+
+    pos = nx.spring_layout(G, seed=42)
+    # Crie um mapa de cores com base nos pesos das arestas
+    edge_color_map = plt.cm.get_cmap('Reds')  # Escolha o colormap desejado
+    edge_colors = [edge_color_map(weight) for weight in weights]
+
+    # Dicionario de plot dos vertices
+    dict_color = {0: 'red', 1: 'blue', 2: 'green'}
+    # Desenhe o grafo com cores representando os pesos das arestas
+    nx.draw(G, with_labels=True,
+            node_color=[dict_color[x] for x in communities],
+            edge_color=edge_colors, edge_cmap=edge_color_map,
+            font_weight='bold', arrows=False, width=3.0, pos=pos)
+
+    # Adicione uma barra de cores para representar os valores
+    sm = plt.cm.ScalarMappable(cmap=edge_color_map,
+                               norm=plt.Normalize(vmin=min(weights),
+                                                  vmax=max(weights)))
+    sm._A = []  # hack para evitar o bug do matplotlib
+    plt.colorbar(sm, label='Pesos das Arestas', ax=plt.gca())
+
+    plt.show()
