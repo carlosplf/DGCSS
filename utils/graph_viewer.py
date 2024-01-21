@@ -79,10 +79,10 @@ def plot_weights(G, communities):
     edge_colors = [edge_color_map(weight) for weight in weights]
 
     # Dicionario de plot dos vertices
-    dict_color = {0: 'red', 1: 'blue', 2: 'green'}
+    # dict_color = {0: 'red', 1: 'blue', 2: 'green'}
+
     # Desenhe o grafo com cores representando os pesos das arestas
     nx.draw(G, with_labels=True,
-            node_color=[dict_color[x] for x in communities],
             edge_color=edge_colors, edge_cmap=edge_color_map,
             font_weight='bold', arrows=False, width=3.0, pos=pos)
 

@@ -1,8 +1,6 @@
 import networkx as nx
 import torch
 import numpy as np
-import random
-import argparse
 from utils.utils import edges_to_edgeindex
 from utils.utils import remove_min_weight_edges
 from utils.graph_viewer import show_graph
@@ -12,15 +10,8 @@ from utils.graph_creator import create_from_dataset
 from gat_model import gat_model
 import torch_geometric.utils as utils
 from torch_geometric.nn import GAE
-from cora_dataset import planetoid_dataset
-
-
-parser = argparse.ArgumentParser()
-parser.add_argument("--dummy", action="store_true", help="Use a dummy smal graph for testing.")
-parser.add_argument("--cora", action="store_true", help="Use the Cora Planetoid dataset.")
-parser.add_argument("--epochs", type=int,
-                    help="Define number of EPOCHS for training.",
-                    default=100)
+import random
+from torch_geometric.datasets import Planetoid
 
 
 # Defining random seeds
@@ -28,6 +19,28 @@ random.seed(81)
 np.random.seed(81)
 torch.manual_seed(81)
 torch.cuda.manual_seed(81)
+
+
+def import_dataset():
+    # Defina o diretório onde você deseja armazenar o conjunto de dados
+    root = './data/Cora'
+
+    # Baixe o conjunto de dados Cora e o carregue
+    dataset = Planetoid(root=root, name='Cora', transform=None, pre_transform=None)
+
+    # Imprima algumas informações sobre o conjunto de dados
+    print('Número de gráficos (grafos):', len(dataset))
+    print('Número de classes:', dataset.num_classes)
+    print('Número de recursos:', dataset.num_node_features)
+
+    # Acesse o primeiro gráfico no conjunto de dados
+    data = dataset[0]
+
+    # Imprima algumas informações sobre o primeiro gráfico
+    print('\nInformações sobre o primeiro gráfico:')
+    print(data)
+
+    return data
 
 
 def train_network(gae, optimizer, graph):
@@ -42,21 +55,15 @@ def train_network(gae, optimizer, graph):
     return float(loss), H_L, att_tuple
 
 
-def run(epochs, dataset_to_use):
+def run(data):
 
-    if dataset_to_use == "cora":
-        data = planetoid_dataset.download_dataset()
-        G, communities = create_from_dataset(data)
-        X = data.x
-    elif dataset_to_use == "dummy":
-        G, communities = define_graph()
-        # Adding some features to the Graph
-        X = torch.tensor(np.eye(18), dtype=torch.float)
-    else:
-        print("No dataset specified. Exiting...")
+    G, communities = create_from_dataset(data)
 
-    # TODO: move this to the method that builds the Graph
-    G.features = X
+    # Adding some features to the Graph
+    X = data.x
+
+    # Duplicated operation?
+    G.features = data.x
 
     for i in range(len(G.nodes())):
         G.nodes[i]['features'] = X[i]
@@ -76,6 +83,8 @@ def run(epochs, dataset_to_use):
     dataset = dataset.to(device)
 
     optimizer = torch.optim.Adam(gae.parameters(), lr=0.005)
+
+    epochs = 200
 
     losses = []
     embs_list = []
@@ -98,28 +107,17 @@ def run(epochs, dataset_to_use):
     # Plot original graph with edge weights
     # plot_weights(G, communities)
 
-    if dataset_to_use == "cora":
-        G, communities = remove_edges(G, communities, num_edges_to_remove=6000)
-    else:
-        G, communities = remove_edges(G, communities)
-
+    G, communities = remove_edges(G, communities)
     plot_weights(G, communities)
 
 
-def remove_edges(G, communities, num_edges_to_remove=None):
+def remove_edges(G, communities):
     # Remove weights with small weights, based on the Attention values.
-
-    print("Removing edges with small Attention values...")
-
     num_rem = 0
-    if not num_edges_to_remove:
-        while nx.number_connected_components(G.to_undirected()) != 3:
-            G = remove_min_weight_edges(G)
-            num_rem += 1
-    else:
-        for i in range(num_edges_to_remove):
-            G = remove_min_weight_edges(G)
-            num_rem += 1
+    to_remove = round(len(G.edges(data=True))/2)
+    for i in range(0, to_remove):
+        G = remove_min_weight_edges(G)
+        num_rem += 1
 
     print("Removed", num_rem, "edges.")
 
@@ -127,19 +125,5 @@ def remove_edges(G, communities, num_edges_to_remove=None):
 
 
 if __name__ == "__main__":
-    dataset_to_use = "cora"
-    args = parser.parse_args()
-
-    if args.cora:
-        print("Using Cora Planetoid dataset...")
-        dataset_to_use = "cora"
-
-    elif args.dummy:
-        print("Using Dummy dataset...")
-        dataset_to_use = "dummy"
-
-    epochs = args.epochs
-
-    print("Considering", epochs, "epochs...")
-
-    run(epochs, dataset_to_use)
+    data = import_dataset()
+    run(data)

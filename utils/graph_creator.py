@@ -1,5 +1,7 @@
 import networkx as nx
 from utils.utils import edges_to_edgeindex
+import torch_geometric.utils.convert as convert
+import torch
 
 
 def define_graph():
@@ -29,3 +31,35 @@ def define_graph():
     print(len(edges))
 
     return G, communities
+
+
+def create_from_dataset(data):
+    # Creating a graph with DiGraph()
+    G = nx.DiGraph()
+
+    # Defining some community values by hand, just for testing
+    communities = data.y
+
+    # Creating a Toy Graph just to use as an example
+    nodes = range(0, data.num_nodes)
+    edges = build_edges_tuples(data)
+
+    G.add_nodes_from(nodes)
+    G.add_edges_from(edges)
+    G.add_edges_from([(v, u) for (u, v) in edges])
+
+    edge_index = edges_to_edgeindex(list(G.edges))
+    G.edge_index = edge_index
+
+    return G, communities
+
+
+def build_edges_tuples(data):
+    new_edge_indexes = []
+    edges_tensor_as_list = data.edge_index.tolist()
+    for i in range(len(edges_tensor_as_list[0])):
+        new_edge_indexes.append(
+            (edges_tensor_as_list[0][i],
+             edges_tensor_as_list[1][i])
+            )
+    return new_edge_indexes
