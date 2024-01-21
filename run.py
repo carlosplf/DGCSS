@@ -43,6 +43,8 @@ def run():
         G.nodes[i]['features'] = X[i]
         G.nodes[i]['label'] = communities[i]
 
+    print(G.features)
+
     # Get nodes coordinates to visualize
     pos = nx.spring_layout(G, seed=42)
     for node in G.nodes():
@@ -63,7 +65,7 @@ def run():
 
     dataset = dataset.to(device)
 
-    optimizer = torch.optim.Adam(gae.parameters(), lr=0.01)
+    optimizer = torch.optim.Adam(gae.parameters(), lr=0.005)
 
     epochs = 200
 
@@ -86,21 +88,22 @@ def run():
         G.add_edge(src[i].item(), tgt[i].item(), weight=weight[i].item())
 
     # Plot original graph with edge weights
+    # plot_weights(G, communities)
+
+    G, communities = remove_edges(G, communities)
     plot_weights(G, communities)
 
-    num_edges_to_remove = 6
-    remove_edges(G, communities, num_edges_to_remove)
 
-
-def remove_edges(G, communities, n_edges):
+def remove_edges(G, communities):
     # Remove weights with small weights, based on the Attention values.
     num_rem = 0
-    for i in range(n_edges):
-        # while nx.number_connected_components(G.to_undirected()) != 3:
+    while nx.number_connected_components(G.to_undirected()) != 3:
         G = remove_min_weight_edges(G)
         num_rem += 1
 
-    plot_weights(G, communities)
+    print("Removed", num_rem, "edges.")
+
+    return G, communities
 
 
 if __name__ == "__main__":

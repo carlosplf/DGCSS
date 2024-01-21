@@ -13,7 +13,7 @@ def edges_to_edgeindex(edges):
 
 def remove_min_weight_edges(graph):
     '''
-    remove a aresta (ou as arestas) de menor peso do grafo
+    Remove edges with less weights.
     '''
     # Encontre o peso mínimo das arestas
     min_weight = min(graph.edges(data=True),
