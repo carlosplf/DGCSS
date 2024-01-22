@@ -45,7 +45,6 @@ def tuple_to_adj(att_tuple, G):
 
 def remove_edges(G, communities, num_edges_to_remove=None):
     # Remove weights with small weights, based on the Attention values.
-
     print("Removing edges with small Attention values...")
 
     num_rem = 0

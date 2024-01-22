@@ -7,7 +7,8 @@ from torch_geometric.logging import log
 import torch.nn.functional as F
 from utils.graph_creator import create_from_dataset
 from utils.utils import remove_edges
-from utils.graph_viewer import plot_weights
+# from utils.graph_viewer import plot_weights
+import networkx as nx
 
 
 @torch.no_grad()
@@ -91,7 +92,7 @@ def remove_edges_and_plot_graph(G, communities,
 
     total_edges = G.number_of_edges()
     print("Total number of edges on Graph:", total_edges)
-    edges_to_remove = round(total_edges/3)
+    edges_to_remove = round(total_edges/4)
 
     # Add the Attention values to the original Graph edges
     weight = att_tuple[1]
@@ -104,10 +105,13 @@ def remove_edges_and_plot_graph(G, communities,
     # Plot original graph with edge weights
     # plot_weights(G, communities)
 
+    print("Clustering coefficient:", nx.average_clustering(G))
+
     if dataset_to_use == "Cora":
         G, communities = remove_edges(G, communities,
                                       num_edges_to_remove=edges_to_remove)
     else:
         G, communities = remove_edges(G, communities)
 
-    plot_weights(G, communities)
+    # plot_weights(G, communities)
+    print("Clustering coefficient:", nx.average_clustering(G))
