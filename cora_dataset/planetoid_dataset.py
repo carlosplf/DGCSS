@@ -1,4 +1,5 @@
 from torch_geometric.datasets import Planetoid
+import torch_geometric.transforms as T
 
 
 def download_dataset():
@@ -6,11 +7,12 @@ def download_dataset():
     root = './data/Cora'
 
     # Baixe o conjunto de dados Cora e o carregue
-    dataset = Planetoid(root=root, name='Cora', transform=None, pre_transform=None)
+    dataset = Planetoid(root=root, name='Cora',
+                        transform=T.NormalizeFeatures(), pre_transform=None)
 
     # Imprima algumas informações sobre o conjunto de dados
     print('Número de gráficos (grafos):', len(dataset))
     print('Número de classes:', dataset.num_classes)
     print('Número de recursos:', dataset.num_node_features)
 
-    return dataset[0]
+    return dataset

@@ -1,7 +1,5 @@
 import networkx as nx
 from utils.utils import edges_to_edgeindex
-import torch_geometric.utils.convert as convert
-import torch
 
 
 def define_graph():

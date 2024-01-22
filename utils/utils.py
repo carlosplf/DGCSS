@@ -1,4 +1,5 @@
 import torch
+import networkx as nx
 
 
 def edges_to_edgeindex(edges):
@@ -40,3 +41,23 @@ def tuple_to_adj(att_tuple, G):
         adj[att_tuple[0][0][i], att_tuple[0][1][i]] = att_tuple[1][i]
 
     return adj, att_tuple[1]
+
+
+def remove_edges(G, communities, num_edges_to_remove=None):
+    # Remove weights with small weights, based on the Attention values.
+
+    print("Removing edges with small Attention values...")
+
+    num_rem = 0
+    if not num_edges_to_remove:
+        while nx.number_connected_components(G.to_undirected()) != 3:
+            G = remove_min_weight_edges(G)
+            num_rem += 1
+    else:
+        for i in range(num_edges_to_remove):
+            G = remove_min_weight_edges(G)
+            num_rem += 1
+
+    print("Removed", num_rem, "edges.")
+
+    return G, communities
