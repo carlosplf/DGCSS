@@ -6,6 +6,9 @@ __pycache__/
 # CORA dataset
 data/*
 
+# Benchmark dataset
+data_graph_exp/*
+
 # C extensions
 *.so
 
