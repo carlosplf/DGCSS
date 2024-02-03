@@ -16,16 +16,17 @@ def remove_min_weight_edges(graph):
     '''
     Remove edges with less weights.
     '''
-    # Encontre o peso mínimo das arestas
+
+    # Find the min weight from edges
     min_weight = min(graph.edges(data=True),
                      key=lambda x: x[2]['weight'])[-1]['weight']
 
-    # Encontre todas as arestas com o peso mínimo
+    # Map all edges with this weight
     edges_to_remove = [
         (u, v) for u, v, data in graph.edges(data=True)
         if data['weight'] == min_weight]
 
-    # Remova as arestas do grafo
+    # Remove it
     graph.remove_edges_from(edges_to_remove)
 
     return graph
@@ -43,20 +44,36 @@ def tuple_to_adj(att_tuple, G):
     return adj, att_tuple[1]
 
 
-def remove_edges(G, communities, num_edges_to_remove=None):
+def remove_edges(G, x):
     # Remove weights with small weights, based on the Attention values.
     print("Removing edges with small Attention values...")
 
     num_rem = 0
-    if not num_edges_to_remove:
-        while nx.number_connected_components(G.to_undirected()) != 3:
-            G = remove_min_weight_edges(G)
-            num_rem += 1
-    else:
-        for i in range(num_edges_to_remove):
-            G = remove_min_weight_edges(G)
-            num_rem += 1
+    while check_size_of_groups(G, x) is False:
+        G = remove_min_weight_edges(G)
+        num_rem += 1
 
     print("Removed", num_rem, "edges.")
 
-    return G, communities
+    return G
+
+
+def check_size_of_groups(G, x):
+    '''
+    Consider a Graph division as valid when we don't have any
+    cluster (group) bigger than 1/x size of the group.
+    '''
+    valid_size = True
+
+    fraction_size_graph = round(len(G.nodes)/x)
+
+    all_groups = list(nx.connected_components(G))
+
+    # print("==> Longest list: ", len(max(all_groups, key=len)),
+    #       " - num clusters: ", len(all_groups))
+
+    for group in all_groups:
+        if len(group) > fraction_size_graph:
+            valid_size = False
+
+    return valid_size

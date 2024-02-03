@@ -92,7 +92,6 @@ def remove_edges_and_plot_graph(G, communities,
 
     total_edges = G.number_of_edges()
     print("Total number of edges on Graph:", total_edges)
-    edges_to_remove = round(total_edges/4)
 
     # Add the Attention values to the original Graph edges
     weight = att_tuple[1]
@@ -103,15 +102,14 @@ def remove_edges_and_plot_graph(G, communities,
         G.add_edge(src[i].item(), tgt[i].item(), weight=weight[i].item())
 
     # Plot original graph with edge weights
-    # plot_weights(G, communities)
+    # plot_weights(G)
 
     print("Clustering coefficient:", nx.average_clustering(G))
 
     if dataset_to_use == "Cora":
-        G, communities = remove_edges(G, communities,
-                                      num_edges_to_remove=edges_to_remove)
+        G = remove_edges(G)
     else:
-        G, communities = remove_edges(G, communities)
+        G = remove_edges(G)
 
-    # plot_weights(G, communities)
+    # plot_weights(G)
     print("Clustering coefficient:", nx.average_clustering(G))

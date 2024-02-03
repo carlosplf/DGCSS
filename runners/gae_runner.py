@@ -4,63 +4,73 @@ import torch
 from utils.utils import remove_edges
 from utils.graph_viewer import plot_weights
 from gat_model import gat_model
-import torch_geometric.utils as utils
 from torch_geometric.nn import GAE
+from torch_geometric.utils import to_networkx
+from matplotlib import pyplot as plt
 
 
-def train_network_gae(gae, optimizer, graph):
+def train_network_gae(gae, optimizer, data):
     gae.train()
     optimizer.zero_grad()
 
-    att_tuple, H_L = gae.encode(graph.features.float(), graph.edge_index)
+    att_tuple, H_L = gae.encode(data.features.float(), data.edge_index)
 
     # Decode por multiplicação pela transposta
-    loss = gae.recon_loss(H_L, graph.edge_index)
+    loss = gae.recon_loss(H_L, data.edge_index)
+
+    loss.backward()
+    optimizer.step()
 
     return float(loss), H_L, att_tuple
 
 
-def run_training(epochs, G, communities, dataset_to_use):
+def run_training(epochs, data, features):
     # TODO: move all this training code to the right method
     device = torch.device('cpu')
 
-    dataset = utils.from_networkx(G)
-
-    in_channels, hidden_channels, out_channels = len(dataset.features[0]), 8, 2
+    in_channels, hidden_channels, out_channels = \
+        5, 32, 8
 
     gae = GAE(gat_model.GATLayer(in_channels, hidden_channels, out_channels))
 
     gae = gae.to(device)
     gae = gae.float()
 
-    dataset = dataset.to(device)
+    data = data.to(device)
 
-    optimizer = torch.optim.Adam(gae.parameters(), lr=0.005)
+    optimizer = torch.optim.Adam(gae.parameters(), lr=0.001)
 
     losses = []
     embs_list = []
 
     for epoch in range(epochs):
-        loss, H_L, att_tuple = train_network_gae(gae, optimizer, dataset)
+        loss, H_L, att_tuple = train_network_gae(gae, optimizer, data)
         if epoch % 10 == 0:
-            print("Loss:", loss)
+            print("==>", epoch, "- Loss:", loss)
         losses.append(loss)
         embs_list.append(H_L)
+
+    plt.plot(losses, label='train_loss')
+    plt.show()
 
     # Add the Attention values to the original Graph edges
     weight = att_tuple[1]
     src = att_tuple[0][0]
     tgt = att_tuple[0][1]
 
+    # After running all the training, transform the dataset to Graph
+    # TODO: Do we need to transform as a Graph again? It was a Graph before
+    # we transform to Dataset for training.
+    G = to_networkx(data, to_undirected=True)
+
+    # Define the edges weights as the values from the Attention matrix
     for i in range(len(weight)):
         G.add_edge(src[i].item(), tgt[i].item(), weight=weight[i].item())
 
     # Plot original graph with edge weights
-    # plot_weights(G, communities)
+    plot_weights(G, features)
 
-    if dataset_to_use == "cora":
-        G, communities = remove_edges(G, communities, num_edges_to_remove=6000)
-    else:
-        G, communities = remove_edges(G, communities)
+    group_size_fraction = 5
+    G = remove_edges(G, group_size_fraction)
 
-    plot_weights(G, communities)
+    plot_weights(G, features)

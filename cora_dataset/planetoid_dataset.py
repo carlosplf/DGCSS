@@ -2,12 +2,12 @@ from torch_geometric.datasets import Planetoid
 import torch_geometric.transforms as T
 
 
-def download_dataset():
+def download_dataset(dataset_name="PubMed"):
     # Defina o diretório onde você deseja armazenar o conjunto de dados
-    root = './data/Cora'
+    root = './data/'
 
-    # Baixe o conjunto de dados Cora e o carregue
-    dataset = Planetoid(root=root, name='Cora',
+    # Baixe o conjunto de dados e o carregue
+    dataset = Planetoid(root=root, name=dataset_name,
                         transform=T.NormalizeFeatures(), pre_transform=None)
 
     # Imprima algumas informações sobre o conjunto de dados

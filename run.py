@@ -2,23 +2,19 @@ import torch
 import numpy as np
 import random
 import argparse
-from utils.graph_creator import define_graph
-from utils.graph_creator import create_from_dataset
 from cora_dataset import planetoid_dataset
-from runners import gat_runner
 from runners import gae_runner
+from data_loader.data_loader import load_as_graph
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--dummy", action="store_true",
-                    help="Use a dummy smal graph for testing.")
-parser.add_argument("--cora", action="store_true",
-                    help="Use the Cora Planetoid dataset.")
-parser.add_argument("--gae", action="store_true",
-                    help="Use GAE encoder and decoder.")
+parser.add_argument("--planetoid", action="store_true",
+                    help="Use a Planetoid dataset.")
+parser.add_argument("--bench", action="store_true",
+                    help="Use a Benchmark clustering graph dataset.")
 parser.add_argument("--epochs", type=int,
                     help="Define number of EPOCHS for training.",
-                    default=100)
+                    default=10)
 
 
 # Defining random seeds
@@ -28,58 +24,52 @@ torch.manual_seed(81)
 torch.cuda.manual_seed(81)
 
 
-def run(epochs, dataset_to_use, gae_bool=False):
+def run(epochs, dataset_to_use):
 
     data = None
     dataset = None
 
-    if dataset_to_use == "cora":
-        dataset = planetoid_dataset.download_dataset()
-        data = dataset[0]
-        G, communities = create_from_dataset(data)
-        X = data.x
-    elif dataset_to_use == "dummy":
-        G, communities = define_graph()
-        # Adding some features to the Graph
-        X = torch.tensor(np.eye(18), dtype=torch.float)
-    else:
-        print("No dataset specified. Exiting...")
+    # Defining PubMed as default!
+    planetoid_dataset_name = "PubMed"
 
-    if not gae_bool:
-        # If gae_bool is false, we should run GAT directly
-        gat_runner.run_training(dataset=dataset, epochs=epochs)
+    if dataset_to_use == "planetoid":
+        dataset = planetoid_dataset.download_dataset(planetoid_dataset_name)
+        data = dataset[0]
+        print(data.x)
+        print(type(data.x))
+        print(len(data.x))
+        print(len(data.x[0]))
+        return
+
+    elif dataset_to_use == "bench":
+        # graph_index sets the Graph to use inside the Dataset.
+        # the easy_small configuration comes with 300 graphs to use.
+        graph, features = load_as_graph(graph_index=0)
+        gae_runner.run_training(epochs, graph, features)
         return
 
     else:
-        # TODO: move this to the method that builds the Graph
-        G.features = X
+        print("No dataset specified. Exiting...")
 
-        for i in range(len(G.nodes())):
-            G.nodes[i]['features'] = X[i]
-            G.nodes[i]['label'] = communities[i]
-
-        gae_runner.run_training(epochs, G, communities, dataset_to_use)
+    gae_runner.run_training(epochs, data)
 
 
 if __name__ == "__main__":
-    dataset_to_use = "cora"
-    gae_bool = False
+
+    dataset_to_use = "bench"
+    gae_bool = True
     args = parser.parse_args()
 
-    if args.cora:
-        print("Using Cora Planetoid dataset...")
-        dataset_to_use = "cora"
+    if args.planetoid:
+        print("Using Planetoid datasets...")
+        dataset_to_use = "planetoid"
 
-    elif args.dummy:
-        print("Using Dummy dataset...")
-        dataset_to_use = "dummy"
-
-    if args.gae:
-        print("GAE set to TRUE. Using Encoder and Decoder...")
-        gae_bool = True
+    elif args.bench:
+        print("Using Benchmark Graphs...")
+        dataset_to_use = "bench"
 
     epochs = args.epochs
 
     print("Considering", epochs, "epochs...")
 
-    run(epochs, dataset_to_use, gae_bool)
+    run(epochs, dataset_to_use)
