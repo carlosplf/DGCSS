@@ -2,11 +2,7 @@
 
 import torch
 from torch_geometric.nn import GAE
-from torch_geometric.utils import to_networkx
-
 from gat_model import gat_model
-from utils.graph_viewer import plot_weights
-from utils.utils import remove_edges
 
 
 def train_network_gae(gae, optimizer, data):
@@ -24,11 +20,11 @@ def train_network_gae(gae, optimizer, data):
     return float(loss), H_L, att_tuple
 
 
-def run_training(epochs, data, features, exp_id=0):
+def run_training(epochs, data):
     # TODO: move all this training code to the right method
     device = torch.device("cpu")
 
-    in_channels, hidden_channels, out_channels = 5, 32, 8
+    in_channels, hidden_channels, out_channels = 5, 64, 16
 
     gae = GAE(gat_model.GATLayer(in_channels, hidden_channels, out_channels))
 
@@ -53,26 +49,4 @@ def run_training(epochs, data, features, exp_id=0):
     # plt.plot(losses, label="train_loss")
     # plt.show()
 
-    # Add the Attention values to the original Graph edges
-    weight = att_tuple[1]
-    src = att_tuple[0][0]
-    tgt = att_tuple[0][1]
-
-    # After running all the training, transform the dataset to Graph
-    # TODO: Do we need to transform as a Graph again? It was a Graph before
-    # we transform to Dataset for training.
-    G = to_networkx(data, to_undirected=True)
-
-    # Define the edges weights as the values from the Attention matrix
-    for i in range(len(weight)):
-        G.add_edge(src[i].item(), tgt[i].item(), weight=weight[i].item())
-
-    # Plot original graph with edge weights
-    filename = "before-" + str(exp_id) + ".png"
-    plot_weights(G, features, folder_path="./charts", filename=filename)
-
-    group_size_fraction = 5
-    G = remove_edges(G, group_size_fraction)
-
-    filename = "after-" + str(exp_id) + ".png"
-    plot_weights(G, features, folder_path="./charts", filename=filename)
+    return data, att_tuple

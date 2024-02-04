@@ -3,10 +3,13 @@ import random
 
 import numpy as np
 import torch
+from torch_geometric.utils import to_networkx
 
 from cora_dataset import planetoid_dataset
 from data_loader.data_loader import load_as_graph
 from runners import gae_runner
+from utils.graph_viewer import plot_weights
+from utils.utils import remove_edges
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--planetoid", action="store_true", help="Use a Planetoid dataset.")
@@ -16,7 +19,15 @@ parser.add_argument(
 parser.add_argument(
     "--epochs", type=int, help="Define number of EPOCHS for training.", default=10
 )
-
+parser.add_argument(
+    "--n_graphs", type=int, help="Define number of Graphs to run.", default=1
+)
+parser.add_argument(
+    "--level",
+    type=str,
+    help="Define the difificulty level from the Dataset. Options: 'easy_small', 'hard_small', 'easy', 'hard'.",
+    default="easy_small",
+)
 
 # Defining random seeds
 random.seed(81)
@@ -25,7 +36,37 @@ torch.manual_seed(81)
 torch.cuda.manual_seed(81)
 
 
-def run(epochs, dataset_to_use):
+def save_plots(graph_index, G, features):
+    # Plot original graph with edge weights
+    filename = "before-" + str(graph_index) + ".png"
+    plot_weights(G, features, folder_path="./charts", filename=filename)
+
+    group_size_fraction = 5
+    G = remove_edges(G, group_size_fraction)
+
+    filename = "after-" + str(graph_index) + ".png"
+    plot_weights(G, features, folder_path="./charts", filename=filename)
+
+
+def set_attention_as_weights(data, att_tuple):
+    # Add the Attention values to the original Graph edges
+    weight = att_tuple[1]
+    src = att_tuple[0][0]
+    tgt = att_tuple[0][1]
+
+    # After running all the training, transform the dataset to Graph
+    # TODO: Do we need to transform as a Graph again?
+    # It was a Graph before we transform into Dataset for training.
+    G = to_networkx(data, to_undirected=True)
+
+    # Define the edges weights as the values from the Attention matrix
+    for i in range(len(weight)):
+        G.add_edge(src[i].item(), tgt[i].item(), weight=weight[i].item())
+
+    return G
+
+
+def run(epochs, dataset_to_use, n_graphs, level):
     data = None
     dataset = None
 
@@ -44,10 +85,12 @@ def run(epochs, dataset_to_use):
 
         # Testing with some Graphs in sequence
         graph_index = 0
-        for i in range(10):
+        for i in range(n_graphs):
             print("==> Testing with Graph ID", graph_index)
-            graph, features = load_as_graph(graph_index=graph_index)
-            gae_runner.run_training(epochs, graph, features, exp_id=graph_index)
+            graph, features = load_as_graph(dataset_name=level, graph_index=graph_index)
+            data, att_tuple = gae_runner.run_training(epochs, graph)
+            G = set_attention_as_weights(data, att_tuple)
+            save_plots(i, G, features)
             graph_index += 1
         return
 
@@ -69,7 +112,9 @@ if __name__ == "__main__":
         dataset_to_use = "bench"
 
     epochs = args.epochs
+    n_graphs = args.n_graphs
+    level = args.level
 
     print("Considering", epochs, "epochs...")
 
-    run(epochs, dataset_to_use)
+    run(epochs, dataset_to_use, n_graphs, level)
