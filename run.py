@@ -1,20 +1,21 @@
-import torch
-import numpy as np
-import random
 import argparse
-from cora_dataset import planetoid_dataset
-from runners import gae_runner
-from data_loader.data_loader import load_as_graph
+import random
 
+import numpy as np
+import torch
+
+from cora_dataset import planetoid_dataset
+from data_loader.data_loader import load_as_graph
+from runners import gae_runner
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--planetoid", action="store_true",
-                    help="Use a Planetoid dataset.")
-parser.add_argument("--bench", action="store_true",
-                    help="Use a Benchmark clustering graph dataset.")
-parser.add_argument("--epochs", type=int,
-                    help="Define number of EPOCHS for training.",
-                    default=10)
+parser.add_argument("--planetoid", action="store_true", help="Use a Planetoid dataset.")
+parser.add_argument(
+    "--bench", action="store_true", help="Use a Benchmark clustering graph dataset."
+)
+parser.add_argument(
+    "--epochs", type=int, help="Define number of EPOCHS for training.", default=10
+)
 
 
 # Defining random seeds
@@ -25,7 +26,6 @@ torch.cuda.manual_seed(81)
 
 
 def run(epochs, dataset_to_use):
-
     data = None
     dataset = None
 
@@ -35,27 +35,27 @@ def run(epochs, dataset_to_use):
     if dataset_to_use == "planetoid":
         dataset = planetoid_dataset.download_dataset(planetoid_dataset_name)
         data = dataset[0]
-        print(data.x)
-        print(type(data.x))
-        print(len(data.x))
-        print(len(data.x[0]))
+        print("TODO: missing implementation fix for Plaetoid datasets... Exiting")
         return
 
     elif dataset_to_use == "bench":
         # graph_index sets the Graph to use inside the Dataset.
         # the easy_small configuration comes with 300 graphs to use.
-        graph, features = load_as_graph(graph_index=0)
-        gae_runner.run_training(epochs, graph, features)
+
+        # Testing with some Graphs in sequence
+        graph_index = 0
+        for i in range(10):
+            print("==> Testing with Graph ID", graph_index)
+            graph, features = load_as_graph(graph_index=graph_index)
+            gae_runner.run_training(epochs, graph, features, exp_id=graph_index)
+            graph_index += 1
         return
 
     else:
         print("No dataset specified. Exiting...")
 
-    gae_runner.run_training(epochs, data)
-
 
 if __name__ == "__main__":
-
     dataset_to_use = "bench"
     gae_bool = True
     args = parser.parse_args()

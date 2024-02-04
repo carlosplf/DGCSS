@@ -2,12 +2,16 @@
 __pycache__/
 *.py[cod]
 *$py.class
+.DS_Store
 
 # CORA dataset
 data/*
 
 # Benchmark dataset
 data_graph_exp/*
+
+# PyPlot charts
+charts/*
 
 # C extensions
 *.so

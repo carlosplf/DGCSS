@@ -1,12 +1,12 @@
 # TODO: recheck imports
 
 import torch
-from utils.utils import remove_edges
-from utils.graph_viewer import plot_weights
-from gat_model import gat_model
 from torch_geometric.nn import GAE
 from torch_geometric.utils import to_networkx
-from matplotlib import pyplot as plt
+
+from gat_model import gat_model
+from utils.graph_viewer import plot_weights
+from utils.utils import remove_edges
 
 
 def train_network_gae(gae, optimizer, data):
@@ -24,12 +24,11 @@ def train_network_gae(gae, optimizer, data):
     return float(loss), H_L, att_tuple
 
 
-def run_training(epochs, data, features):
+def run_training(epochs, data, features, exp_id=0):
     # TODO: move all this training code to the right method
-    device = torch.device('cpu')
+    device = torch.device("cpu")
 
-    in_channels, hidden_channels, out_channels = \
-        5, 32, 8
+    in_channels, hidden_channels, out_channels = 5, 32, 8
 
     gae = GAE(gat_model.GATLayer(in_channels, hidden_channels, out_channels))
 
@@ -42,6 +41,7 @@ def run_training(epochs, data, features):
 
     losses = []
     embs_list = []
+    att_tuple = [[]]
 
     for epoch in range(epochs):
         loss, H_L, att_tuple = train_network_gae(gae, optimizer, data)
@@ -50,8 +50,8 @@ def run_training(epochs, data, features):
         losses.append(loss)
         embs_list.append(H_L)
 
-    plt.plot(losses, label='train_loss')
-    plt.show()
+    # plt.plot(losses, label="train_loss")
+    # plt.show()
 
     # Add the Attention values to the original Graph edges
     weight = att_tuple[1]
@@ -68,9 +68,11 @@ def run_training(epochs, data, features):
         G.add_edge(src[i].item(), tgt[i].item(), weight=weight[i].item())
 
     # Plot original graph with edge weights
-    plot_weights(G, features)
+    filename = "before-" + str(exp_id) + ".png"
+    plot_weights(G, features, folder_path="./charts", filename=filename)
 
     group_size_fraction = 5
     G = remove_edges(G, group_size_fraction)
 
-    plot_weights(G, features)
+    filename = "after-" + str(exp_id) + ".png"
+    plot_weights(G, features, folder_path="./charts", filename=filename)
