@@ -19,14 +19,15 @@ Using the cli arguments, you can chose between the Cora Planetoid dataset and a 
 #### Arguments:
 
 ```
-usage: run.py [-h] [--dummy] [--cora] [--gae] [--epochs EPOCHS]
+usage: run.py [-h] [--planetoid] [--bench] [--epochs EPOCHS] [--n_graphs N_GRAPHS] [--level LEVEL]
 
 options:
-  -h, --help       show this help message and exit
-  --dummy          Use a dummy smal graph for testing.
-  --cora           Use the Cora Planetoid dataset.
-  --gae            Use GAE encoder and decoder.
-  --epochs EPOCHS  Define number of EPOCHS for training.
+  -h, --help           show this help message and exit
+  --planetoid          Use a Planetoid dataset.
+  --bench              Use a Benchmark clustering graph dataset.
+  --epochs EPOCHS      Define number of EPOCHS for training.
+  --n_graphs N_GRAPHS  Define number of Graphs to run.
+  --level LEVEL        Define the difificulty level from the Dataset. Options: 'easy_small', 'hard_small', 'easy', 'hard'.
 ```
 
 ### Authors:
