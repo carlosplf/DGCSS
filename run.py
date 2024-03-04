@@ -25,16 +25,14 @@ torch.manual_seed(81)
 torch.cuda.manual_seed(81)
 
 
-def save_plots(graph_index, G, labels):
-    # Plot original graph with edge weights
+def save_plots(graph_index, G_before, G_after, labels):
+    logger.info("Saving graph images to folder.")
+    
     filename = "before-" + str(graph_index) + ".png"
-    plot_weights(G, labels, folder_path="./charts", filename=filename)
-
-    group_size_fraction = 1.50
-    G = remove_edges(G, group_size_fraction)
+    plot_weights(G_before, labels, folder_path="./charts", filename=filename)
 
     filename = "after-" + str(graph_index) + ".png"
-    plot_weights(G, labels, folder_path="./charts", filename=filename)
+    plot_weights(G_after, labels, folder_path="./charts", filename=filename)
 
 
 def set_attention_as_weights(data, att_tuple):
@@ -59,8 +57,13 @@ def run(epochs):
 
     data = create_demo_graph()
     data, att_tuple = gae_runner.run_training(epochs, data)
-    G = set_attention_as_weights(data, att_tuple)
-    save_plots(0, G, data.y.tolist())
+    
+    G_before = set_attention_as_weights(data, att_tuple)
+    
+    group_size_fraction = 1.50
+    G_after = remove_edges(G_before, group_size_fraction)
+    
+    save_plots(0, G_before, G_after, data.y.tolist())
     return
 
 

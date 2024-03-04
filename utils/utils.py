@@ -1,5 +1,10 @@
+import logging
+
 import torch
 import networkx as nx
+
+
+logger = logging.getLogger(__name__)
 
 
 def edges_to_edgeindex(edges):
@@ -46,14 +51,14 @@ def tuple_to_adj(att_tuple, G):
 
 def remove_edges(G, x):
     # Remove weights with small weights, based on the Attention values.
-    print("Removing edges with small Attention values...")
+    logger.info("Removing edges with small Attention values...")
 
     num_rem = 0
     while check_size_of_groups(G, x) is False:
         G = remove_min_weight_edges(G)
         num_rem += 1
 
-    print("Removed", num_rem, "edges.")
+    logger.info("Removed %s edges.", num_rem)
 
     return G
 
