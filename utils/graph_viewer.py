@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import networkx as nx
 
 
-def plot_weights(G, features, folder_path=None, filename="example.jpg"):
+def plot_weights(G, labels, folder_path=None, filename="example.jpg"):
     weights = [edata["weight"] for u, v, edata in G.edges(data=True)]
 
     pos = nx.spring_layout(G, seed=42)
@@ -15,24 +15,25 @@ def plot_weights(G, features, folder_path=None, filename="example.jpg"):
     # Dicionario de plot dos vertices
     # dict_color = {0: 'red', 1: 'blue', 2: 'green'}
 
-    label_color_mapping = {0: "red", 1: "blue", 2: "green", 3: "yellow", 4: "black"}
+    # label_color_mapping = {0: "red", 1: "blue", 2: "green", 3: "yellow", 4: "black"}
 
-    node_colors = []
-    for node_features in features:
-        node_color = node_features.tolist().index(1)
-        node_colors.append(label_color_mapping[node_color])
+    # node_colors = []
+    # for node_features in features:
+    #     node_color = node_features.tolist().index(1)
+    #     node_colors.append(label_color_mapping[node_color])
 
     # Desenhe o grafo com cores representando os pesos das arestas
     nx.draw(
         G,
-        with_labels=True,
+        with_labels=False,
         edge_color=edge_colors,
         edge_cmap=edge_color_map,
-        node_color=node_colors,
+        node_color=labels,
         font_weight="bold",
         arrows=False,
         width=3.0,
         pos=pos,
+        node_size=100,
     )
 
     # Adicione uma barra de cores para representar os valores

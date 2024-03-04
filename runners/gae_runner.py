@@ -9,7 +9,7 @@ def train_network_gae(gae, optimizer, data):
     gae.train()
     optimizer.zero_grad()
 
-    att_tuple, H_L = gae.encode(data.features.float(), data.edge_index)
+    att_tuple, H_L = gae.encode(data.x.float(), data.edge_index)
 
     # Decode por multiplicação pela transposta
     loss = gae.recon_loss(H_L, data.edge_index)
@@ -24,7 +24,7 @@ def run_training(epochs, data):
     # TODO: move all this training code to the right method
     device = torch.device("cpu")
 
-    in_channels, hidden_channels, out_channels = 5, 64, 16
+    in_channels, hidden_channels, out_channels = data.x.shape[1], 16, 8
 
     gae = GAE(gat_model.GATLayer(in_channels, hidden_channels, out_channels))
 
@@ -33,7 +33,7 @@ def run_training(epochs, data):
 
     data = data.to(device)
 
-    optimizer = torch.optim.Adam(gae.parameters(), lr=0.001)
+    optimizer = torch.optim.Adam(gae.parameters(), lr=0.01)
 
     losses = []
     embs_list = []
