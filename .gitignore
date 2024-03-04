@@ -9,6 +9,7 @@ data/*
 
 # Benchmark dataset
 data_graph_exp/*
+RandomPartitionGraphDataset/*
 
 # PyPlot charts
 charts/*
