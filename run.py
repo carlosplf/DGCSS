@@ -10,8 +10,7 @@ from runners import gae_runner
 from utils.graph_viewer import plot_weights
 from utils.utils import remove_edges
 from utils.graph_creator import create_demo_graph
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.model_selection import cross_val_score
+from sklearn.cluster import AgglomerativeClustering
 
 
 parser = argparse.ArgumentParser()
@@ -55,16 +54,12 @@ def set_attention_as_weights(data, att_tuple):
     return G
 
 
-def run_decision_tree(att_tuple, labels):
+def run_aggl_clustering(att_tuple):
     """
-    Based on the Attention matrix calculated by the GAE, run
-    a DecisionTreeClassifier trying to classify the nodes based
-    on the Attention Matrix as a diatance matrix.
+    Run the AgglomerativeClustering algorithm and try to classify the node.
     Args:
-        att_tuple: matrix - Attention values NxN where N = number of nodes
-        labels: list of N labels (node classification)
-    Return:
-        (list) classification score with 'cross_val_score'
+        att_tuple: [[]] Attention values from Graph Autoencoder.
+    Return: None
     """
     # testing DecisionTreeClassifier
     new_att = np.zeros((500, 500))
@@ -75,10 +70,11 @@ def run_decision_tree(att_tuple, labels):
 
     # TODO: attention matrix should be about distances, not values
     for i in range(len(src)):
-        new_att[src[i]][tgt[i]] = weight[i]
+        new_att[src[i]][tgt[i]] = 1/weight[i]
 
-    clf = DecisionTreeClassifier()
-    print(cross_val_score(clf, new_att, labels, cv=10))
+    aggl_cl = AgglomerativeClustering(linkage="complete", n_clusters=5, metric='precomputed')
+    print(aggl_cl.fit_predict(X=new_att))
+    return None
 
 
 def run(epochs):
@@ -87,7 +83,10 @@ def run(epochs):
 
     data, att_tuple = gae_runner.run_training(epochs, data)
 
-    run_decision_tree(att_tuple, data.y.tolist())
+    run_aggl_clustering(att_tuple)
+    
+    print("========= Original classes: ==========")
+    print(data.y.tolist())
 
     """
     G_before = set_attention_as_weights(data, att_tuple)
