@@ -10,6 +10,7 @@ from runners import gae_runner
 from utils.graph_viewer import plot_weights
 from utils.utils import remove_edges
 from utils.graph_creator import create_demo_graph
+from sklearn.cluster import AgglomerativeClustering
 
 
 parser = argparse.ArgumentParser()
@@ -53,17 +54,48 @@ def set_attention_as_weights(data, att_tuple):
     return G
 
 
+def run_aggl_clustering(att_tuple):
+    """
+    Run the AgglomerativeClustering algorithm and try to classify the node.
+    Args:
+        att_tuple: [[]] Attention values from Graph Autoencoder.
+    Return: None
+    """
+    # testing DecisionTreeClassifier
+    new_att = np.zeros((500, 500))
+
+    src = att_tuple[0][0].detach().numpy()
+    tgt = att_tuple[0][1].detach().numpy()
+    weight = att_tuple[1].detach().numpy() # pyright: ignore
+
+    # TODO: attention matrix should be about distances, not values
+    for i in range(len(src)):
+        new_att[src[i]][tgt[i]] = 1/weight[i]
+
+    aggl_cl = AgglomerativeClustering(linkage="complete", n_clusters=5, metric='precomputed')
+    print(aggl_cl.fit_predict(X=new_att))
+    return None
+
+
 def run(epochs):
 
     data = create_demo_graph()
+
     data, att_tuple = gae_runner.run_training(epochs, data)
+
+    run_aggl_clustering(att_tuple)
     
+    print("========= Original classes: ==========")
+    print(data.y.tolist())
+
+    """
     G_before = set_attention_as_weights(data, att_tuple)
     
     group_size_fraction = 1.50
     G_after = remove_edges(G_before, group_size_fraction)
     
     save_plots(0, G_before, G_after, data.y.tolist())
+    """
     return
 
 
