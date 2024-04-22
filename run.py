@@ -11,7 +11,6 @@ from torch_geometric.data import Data
 
 from runners import gae_runner
 from utils.graph_viewer import plot_weights
-from utils.utils import remove_edges
 from utils.graph_creator import create_demo_graph
 from sklearn.cluster import AgglomerativeClustering
 from sklearn.metrics.cluster import normalized_mutual_info_score
@@ -24,7 +23,7 @@ parser.add_argument(
 )
 
 
-GRAPH_NUMBER_NODES = 100
+GRAPH_NUMBER_NODES = 400
 GRAPH_NUMBER_CLASSES = 4
 
 

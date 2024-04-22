@@ -1,29 +1,33 @@
 # TODO: recheck imports
 
 import torch
-import networkx as nx
 import numpy as np
-from torch_geometric.utils import to_networkx, to_edge_index, dense_to_sparse
+import logging
 from torch_geometric.nn import GAE
 from gat_model import gat_model
 from sklearn.cluster import KMeans
 
 
-def get_clusters_centroids(data, n_clusters):
+def get_clusters_centroids(Z, n_clusters):
     """
     Runs KMeans clustering to find the centroids.
     """
-    X = data.x.detach().numpy()
+    logging.info("Calculating centroids with K-Means...")
+    X = Z.detach().numpy()
 
     kmeans = KMeans(n_clusters=n_clusters, random_state=0, n_init="auto").fit(X)
     return kmeans.cluster_centers_
 
 
-def calculate_q(clusters_centroids, data):
+def calculate_q(clusters_centroids, Z):
     """
     Calculate Q using Student’s t-distribution.
     """
-    nodes = data.x.detach().numpy()
+
+    if clusters_centroids is None:
+        return None
+    
+    nodes = Z.detach().numpy()
     number_of_nodes = len(nodes)
     number_of_centroids = len(clusters_centroids)
 
@@ -45,6 +49,9 @@ def calculate_p(Q):
     """
     Calculate P using Q.
     """
+
+    if Q is None:
+        return None
     
     number_of_nodes = len(Q)
     number_of_centroids = len(Q[0])
@@ -63,6 +70,10 @@ def calculate_p(Q):
 
 
 def clustering_loss(Q, P):
+
+    if P is None or Q is None:
+        return 1000
+    
     number_of_nodes = len(Q)
     number_of_centroids = len(Q[0])
     
@@ -72,11 +83,11 @@ def clustering_loss(Q, P):
         for u in range(number_of_centroids):
             loss_clustering += (P[i][u] * (np.log(P[i][u]/Q[i][u])))
 
-    print(loss_clustering)
     return loss_clustering
 
 
-def train_network_gae(gae, optimizer, data, b_edge_index, clusters_centroids):
+def train_network_gae(epoch, gae, optimizer, data, b_edge_index,
+                      n_clusters, clusters_centroids):
     gae.train()
     optimizer.zero_grad()
 
@@ -84,38 +95,31 @@ def train_network_gae(gae, optimizer, data, b_edge_index, clusters_centroids):
         data.x.float(), b_edge_index.edge_index, b_edge_index.edge_attr
     )
 
-    Q = calculate_q(clusters_centroids, data)
+    if clusters_centroids is None:
+        clusters_centroids = get_clusters_centroids(H_L, n_clusters)
+
+    Q = calculate_q(clusters_centroids, H_L)
     P = calculate_p(Q)
     loss_clustering = clustering_loss(Q, P)
+    logging.info("==> Loss clustering: " + str(loss_clustering))
 
-    # Trying to calculate the Graph Edit Distance between the
-    # original graph and the one that GEA built.
-    # G_1 = to_networkx(data)
+    y = 0.1
     
-    # G_2 = nx.empty_graph(0, nx.DiGraph)
-    # G_2.add_nodes_from(range(H_L.shape[0]))
-    # G_2.add_edges_from(((int(e[0]), int(e[1])) for e in zip(*H_L.nonzero())))
-
-    # Using too much memory!!!
-    # ged = nx.graph_edit_distance(G_1, G_2)
-    # print(ged)
-
     loss = gae.recon_loss(H_L, data.edge_index)
+    
+    total_loss = loss + y*loss_clustering
 
-    loss.backward()
+    total_loss.backward()
     optimizer.step()
 
-    return float(loss), H_L, att_tuple
+    return float(total_loss), H_L, att_tuple, clusters_centroids
 
 
 def run_training(epochs, data, b_edge_index, n_clusters):
     # TODO: move all this training code to the right method
     device = torch.device("cpu")
 
-    in_channels, hidden_channels, out_channels = data.x.shape[1], 16, 8
-
-    # Clusters centroids are calculated just once at the begining.
-    clusters_centroids = get_clusters_centroids(data, n_clusters)
+    in_channels, hidden_channels, out_channels = data.x.shape[1], 64, 32
 
     gae = GAE(gat_model.GATLayer(in_channels, hidden_channels, out_channels))
 
@@ -130,12 +134,14 @@ def run_training(epochs, data, b_edge_index, n_clusters):
     embs_list = []
     att_tuple = [[]]
 
+    clusters_centroids = None
+
     for epoch in range(epochs):
-        loss, H_L, att_tuple = train_network_gae(
-            gae, optimizer, data, b_edge_index, clusters_centroids
+        loss, H_L, att_tuple, clusters_centroids = train_network_gae(
+            epoch, gae, optimizer, data, b_edge_index, n_clusters, clusters_centroids
         )
         if epoch % 10 == 0:
-            print("==>", epoch, "- Loss:", loss)
+            logging.info("==> " + str(epoch) + " - Loss: " + str(loss))
         losses.append(loss)
         embs_list.append(H_L)
 

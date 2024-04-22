@@ -21,7 +21,7 @@ def create_demo_graph(number_nodes, number_classes):
         num_nodes_per_class=(round(number_nodes/number_classes)),
         node_homophily_ratio=0.5,
         average_degree=12,
-        num_channels=32,
+        num_channels=128,
     )
 
     return data[0]
