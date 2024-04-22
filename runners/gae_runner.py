@@ -99,27 +99,29 @@ def train_network_gae(epoch, gae, optimizer, data, b_edge_index,
         clusters_centroids = get_clusters_centroids(H_L, n_clusters)
 
     Q = calculate_q(clusters_centroids, H_L)
+
     P = calculate_p(Q)
+
     loss_clustering = clustering_loss(Q, P)
     logging.info("==> Loss clustering: " + str(loss_clustering))
 
-    y = 0.1
+    gama = 10
     
-    loss = gae.recon_loss(H_L, data.edge_index)
+    gae_loss = gae.recon_loss(H_L, data.edge_index)
     
-    total_loss = loss + y*loss_clustering
+    total_loss = gae_loss + gama*loss_clustering
 
     total_loss.backward()
     optimizer.step()
 
-    return float(total_loss), H_L, att_tuple, clusters_centroids
+    return float(total_loss), H_L, att_tuple, clusters_centroids, Q
 
 
 def run_training(epochs, data, b_edge_index, n_clusters):
     # TODO: move all this training code to the right method
     device = torch.device("cpu")
 
-    in_channels, hidden_channels, out_channels = data.x.shape[1], 64, 32
+    in_channels, hidden_channels, out_channels = data.x.shape[1], 256, 16
 
     gae = GAE(gat_model.GATLayer(in_channels, hidden_channels, out_channels))
 
@@ -128,7 +130,7 @@ def run_training(epochs, data, b_edge_index, n_clusters):
 
     data = data.to(device)
 
-    optimizer = torch.optim.Adam(gae.parameters(), lr=0.001)
+    optimizer = torch.optim.Adam(gae.parameters(), lr=0.01)
 
     losses = []
     embs_list = []
@@ -137,13 +139,20 @@ def run_training(epochs, data, b_edge_index, n_clusters):
     clusters_centroids = None
 
     for epoch in range(epochs):
-        loss, H_L, att_tuple, clusters_centroids = train_network_gae(
+        loss, H_L, att_tuple, clusters_centroids, Q = train_network_gae(
             epoch, gae, optimizer, data, b_edge_index, n_clusters, clusters_centroids
         )
         if epoch % 10 == 0:
             logging.info("==> " + str(epoch) + " - Loss: " + str(loss))
         losses.append(loss)
         embs_list.append(H_L)
+
+    r = []
+    for line in Q:
+        r.append(np.argmax(line))
+    
+    print(r)
+    print(data.y)
 
     # plt.plot(losses, label="train_loss")
     # plt.show()

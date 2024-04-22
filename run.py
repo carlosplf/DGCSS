@@ -23,8 +23,8 @@ parser.add_argument(
 )
 
 
-GRAPH_NUMBER_NODES = 400
-GRAPH_NUMBER_CLASSES = 4
+GRAPH_NUMBER_NODES = 250
+GRAPH_NUMBER_CLASSES = 5
 
 
 def save_plots(graph_index, G_before, G_after, labels):
@@ -97,11 +97,11 @@ def calc_t_order_neighbors(adj_matrix, t=1):
     return b_sum/t
 
 
-def create_adj_matrix(edge_index):
-    new_adj_matrix = np.zeros((GRAPH_NUMBER_NODES, GRAPH_NUMBER_NODES))
+def create_adj_matrix(data):
+    new_adj_matrix = np.zeros((data.num_nodes, data.num_nodes))
 
-    src = edge_index[0].detach().numpy()
-    tgt = edge_index[1].detach().numpy()
+    src = data.edge_index[0].detach().numpy()
+    tgt = data.edge_index[1].detach().numpy()
 
     for i in range(len(src)):
         new_adj_matrix[src[i]][tgt[i]] = 1
@@ -123,9 +123,9 @@ def run(epochs):
 
     data = create_demo_graph(GRAPH_NUMBER_NODES, GRAPH_NUMBER_CLASSES)
 
-    adj_matrix = create_adj_matrix(data.edge_index)
+    adj_matrix = create_adj_matrix(data)
 
-    b_matrix = calc_t_order_neighbors(adj_matrix=adj_matrix, t=1)
+    b_matrix = calc_t_order_neighbors(adj_matrix=adj_matrix, t=2)
     
     b_src_tgt_tensor = adj_to_edge_index(b_matrix)
 
