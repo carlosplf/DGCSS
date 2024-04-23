@@ -1,160 +1,79 @@
-# TODO: recheck imports
-
 import torch
 import numpy as np
 import logging
 from torch_geometric.nn import GAE
 from gat_model import gat_model
-from sklearn.cluster import KMeans
+from sklearn.metrics.cluster import normalized_mutual_info_score
+from utils import clustering_loss
 
 
-def get_clusters_centroids(Z, n_clusters):
-    """
-    Runs KMeans clustering to find the centroids.
-    """
-    logging.info("Calculating centroids with K-Means...")
-    X = Z.detach().numpy()
-
-    kmeans = KMeans(n_clusters=n_clusters, random_state=0, n_init="auto").fit(X)
-    return kmeans.cluster_centers_
+C_LOSS_GAMA = 10
+LEARNING_RATE = 0.01
+CALC_P_INTERVAL = 50
 
 
-def calculate_q(clusters_centroids, Z):
-    """
-    Calculate Q using Student’s t-distribution.
-    """
+class GaeRunner():
 
-    if clusters_centroids is None:
-        return None
+    def __init__(self, epochs, data, b_edge_index, n_clusters):
+        self.epochs = epochs
+        self.data = data
+        self.b_edge_index = b_edge_index
+        self.n_clusters = n_clusters
+        self.Q = 0
+        self.P = 0
+        self.clusters_centroids = None
+
+    def run_training(self):
+
+        in_channels, hidden_channels, out_channels = self.data.x.shape[1], 64, 16
+
+        gae = GAE(gat_model.GATLayer(in_channels, hidden_channels, out_channels))
+
+        gae = gae.float()
+
+        optimizer = torch.optim.Adam(gae.parameters(), lr=LEARNING_RATE)
+
+        losses = []
+        att_tuple = [[]]
+
+        for epoch in range(self.epochs):
+            loss, Z, att_tuple = self.__train_network(gae, optimizer, epoch)
+            if epoch % 10 == 0:
+                logging.info("==> " + str(epoch) + " - Loss: " + str(loss))
+            losses.append(loss)
+
+        r = []
+        for line in self.Q:
+            r.append(np.argmax(line))
+        
+        print(normalized_mutual_info_score(self.data.y.tolist(), r))
+
+        return self.data, att_tuple
     
-    nodes = Z.detach().numpy()
-    number_of_nodes = len(nodes)
-    number_of_centroids = len(clusters_centroids)
+    def __train_network(self, gae, optimizer, epoch):
 
-    Q = np.zeros((number_of_nodes, number_of_centroids))
+        gae.train()
+        optimizer.zero_grad()
 
-    for i in range(number_of_nodes):
-        for u in range(number_of_centroids):
-            q = 1 / ( 1 + np.power(np.linalg.norm(nodes[i]-clusters_centroids[u]), 2) )
-            q_lower_sum = 0
-            for k in range(number_of_centroids):
-                q_lower_sum += 1 / ( 1 + np.power(np.linalg.norm(nodes[i]-clusters_centroids[k]), 2) )
-            q = q / q_lower_sum
-            Q[i][u] = q        
-
-    return Q
-
-
-def calculate_p(Q):
-    """
-    Calculate P using Q.
-    """
-
-    if Q is None:
-        return None
-    
-    number_of_nodes = len(Q)
-    number_of_centroids = len(Q[0])
-
-    P = np.zeros((number_of_nodes, number_of_centroids))
-
-    for i in range(number_of_nodes):
-        for u in range(number_of_centroids):
-            p = np.power(Q[i][u], 2) / sum(Q[x][u] for x in range(number_of_nodes))
-            p_lower_sum = 0
-            for k in range(number_of_centroids):
-                p_lower_sum += (np.power(Q[i][k], 2) / sum(Q[x][k] for x in range(number_of_nodes)))
-            p = p / p_lower_sum
-            P[i][u] = p        
-    return P
-
-
-def clustering_loss(Q, P):
-
-    if P is None or Q is None:
-        return 1000
-    
-    number_of_nodes = len(Q)
-    number_of_centroids = len(Q[0])
-    
-    loss_clustering = 0
-
-    for i in range(number_of_nodes):
-        for u in range(number_of_centroids):
-            loss_clustering += (P[i][u] * (np.log(P[i][u]/Q[i][u])))
-
-    return loss_clustering
-
-
-def train_network_gae(epoch, gae, optimizer, data, b_edge_index,
-                      n_clusters, clusters_centroids):
-    gae.train()
-    optimizer.zero_grad()
-
-    att_tuple, H_L = gae.encode(
-        data.x.float(), b_edge_index.edge_index, b_edge_index.edge_attr
-    )
-
-    if clusters_centroids is None:
-        clusters_centroids = get_clusters_centroids(H_L, n_clusters)
-
-    Q = calculate_q(clusters_centroids, H_L)
-
-    P = calculate_p(Q)
-
-    loss_clustering = clustering_loss(Q, P)
-    logging.info("==> Loss clustering: " + str(loss_clustering))
-
-    gama = 10
-    
-    gae_loss = gae.recon_loss(H_L, data.edge_index)
-    
-    total_loss = gae_loss + gama*loss_clustering
-
-    total_loss.backward()
-    optimizer.step()
-
-    return float(total_loss), H_L, att_tuple, clusters_centroids, Q
-
-
-def run_training(epochs, data, b_edge_index, n_clusters):
-    # TODO: move all this training code to the right method
-    device = torch.device("cpu")
-
-    in_channels, hidden_channels, out_channels = data.x.shape[1], 256, 16
-
-    gae = GAE(gat_model.GATLayer(in_channels, hidden_channels, out_channels))
-
-    gae = gae.to(device)
-    gae = gae.float()
-
-    data = data.to(device)
-
-    optimizer = torch.optim.Adam(gae.parameters(), lr=0.01)
-
-    losses = []
-    embs_list = []
-    att_tuple = [[]]
-
-    clusters_centroids = None
-
-    for epoch in range(epochs):
-        loss, H_L, att_tuple, clusters_centroids, Q = train_network_gae(
-            epoch, gae, optimizer, data, b_edge_index, n_clusters, clusters_centroids
+        att_tuple, Z = gae.encode(
+            self.data.x.float(), self.b_edge_index.edge_index, self.b_edge_index.edge_attr
         )
-        if epoch % 10 == 0:
-            logging.info("==> " + str(epoch) + " - Loss: " + str(loss))
-        losses.append(loss)
-        embs_list.append(H_L)
 
-    r = []
-    for line in Q:
-        r.append(np.argmax(line))
-    
-    print(r)
-    print(data.y)
+        if self.clusters_centroids is None:
+            self.clusters_centroids = clustering_loss.get_clusters_centroids(Z, self.n_clusters)
 
-    # plt.plot(losses, label="train_loss")
-    # plt.show()
+        self.Q = clustering_loss.calculate_q(self.clusters_centroids, Z)
 
-    return data, att_tuple
+        if epoch % CALC_P_INTERVAL == 0:
+            self.P = clustering_loss.calculate_p(self.Q)
+
+        loss_clustering = clustering_loss.calculate_clustering_loss(self.Q, self.P)
+        
+        gae_loss = gae.recon_loss(Z, self.data.edge_index)
+        
+        total_loss = gae_loss + C_LOSS_GAMA*loss_clustering
+
+        total_loss.backward()
+        optimizer.step()
+
+        return float(total_loss), Z, att_tuple

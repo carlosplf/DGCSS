@@ -1,19 +1,15 @@
 import argparse
-import random
 import logging
 
 import numpy as np
 from numpy.linalg import matrix_power
 import torch
-from torch_geometric.utils import to_networkx, to_edge_index, dense_to_sparse
 from torch_geometric.data import Data
 
 
 from runners import gae_runner
-from utils.graph_viewer import plot_weights
-from utils.graph_creator import create_demo_graph
+from utils.graph_creator import get_cora_dataset
 from sklearn.cluster import AgglomerativeClustering
-from sklearn.metrics.cluster import normalized_mutual_info_score
 
 
 parser = argparse.ArgumentParser()
@@ -25,34 +21,6 @@ parser.add_argument(
 
 GRAPH_NUMBER_NODES = 250
 GRAPH_NUMBER_CLASSES = 5
-
-
-def save_plots(graph_index, G_before, G_after, labels):
-    logger.info("Saving graph images to folder.")
-    
-    filename = "before-" + str(graph_index) + ".png"
-    plot_weights(G_before, labels, folder_path="./charts", filename=filename)
-
-    filename = "after-" + str(graph_index) + ".png"
-    plot_weights(G_after, labels, folder_path="./charts", filename=filename)
-
-
-def set_attention_as_weights(data, att_tuple):
-    # Add the Attention values to the original Graph edges
-    weight = att_tuple[1]
-    src = att_tuple[0][0]
-    tgt = att_tuple[0][1]
-
-    # After running all the training, transform the dataset to Graph
-    # TODO: Do we need to transform as a Graph again?
-    # It was a Graph before we transform into Dataset for training.
-    G = to_networkx(data, to_undirected=True)
-
-    # Define the edges weights as the values from the Attention matrix
-    for i in range(len(weight)):
-        G.add_edge(src[i].item(), tgt[i].item(), weight=weight[i].item())
-
-    return G
 
 
 def run_aggl_clustering(att_tuple):
@@ -121,7 +89,7 @@ def adj_to_edge_index(adj_matrix):
 
 def run(epochs):
 
-    data = create_demo_graph(GRAPH_NUMBER_NODES, GRAPH_NUMBER_CLASSES)
+    data = get_cora_dataset()
 
     adj_matrix = create_adj_matrix(data)
 
@@ -139,13 +107,9 @@ def run(epochs):
     
     b_edge_index = Data(edge_index=b_src_tgt_tensor, edge_attr=b_weights)
 
-    data, att_tuple = gae_runner.run_training(
-        epochs, data, b_edge_index, GRAPH_NUMBER_CLASSES
-    )
-    
-    aggl_result = run_aggl_clustering(att_tuple)
-    
-    print(normalized_mutual_info_score(data.y.tolist(), aggl_result))
+    runner = gae_runner.GaeRunner(epochs, data, b_edge_index, GRAPH_NUMBER_CLASSES)
+
+    data, att_tuple = runner.run_training()
 
     return
 

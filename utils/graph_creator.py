@@ -11,11 +11,7 @@ def create_demo_graph(number_nodes, number_classes):
 
     return: dataset 0 position data structure.
     """
-    return Planetoid(root = "", name = 'Cora')[0]
-
-    logger = logging.getLogger(__name__)
-
-    logger.info("Creating a new demo graph using RandomPartitionGraphDataset...")
+    logging.info("Creating a new demo graph using RandomPartitionGraphDataset...")
 
     data = RandomPartitionGraphDataset(
         root="",
@@ -27,3 +23,12 @@ def create_demo_graph(number_nodes, number_classes):
     )
 
     return data[0]
+
+
+def get_cora_dataset():
+    """
+    Get Cora Planetoid dataset.
+    More info at https://pytorch-geometric.readthedocs.io/en/latest/modules/datasets.html
+    """
+    logging.info("Geting Cora dataset...")
+    return Planetoid(root = "", name = 'Cora')[0]
