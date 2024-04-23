@@ -15,10 +15,11 @@ class GATLayer(torch.nn.Module):
                                  heads=1, add_self_loops=True)
 
     # IMPORTANT: Just the last layer is being returned by this method.
-    def forward(self, x, edge_index):
-        x = F.relu(self.gat_conv1(x, edge_index))
-        x, att_tuple = self.gat_conv2(x, edge_index,
-                                      return_attention_weights=True)
+    def forward(self, x, edge_index, weights=None):
+        x, att_tuple = self.gat_conv1(x, edge_index, weights, return_attention_weights=True)
+        x = F.relu(x)
+        x = self.gat_conv2(x, edge_index, weights)
+
         return att_tuple, x
 
 

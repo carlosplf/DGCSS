@@ -1,52 +1,79 @@
-# TODO: recheck imports
-
 import torch
+import numpy as np
+import logging
 from torch_geometric.nn import GAE
 from gat_model import gat_model
+from sklearn.metrics.cluster import normalized_mutual_info_score
+from utils import clustering_loss
 
 
-def train_network_gae(gae, optimizer, data):
-    gae.train()
-    optimizer.zero_grad()
-
-    att_tuple, H_L = gae.encode(data.x.float(), data.edge_index)
-
-    # Decode por multiplicação pela transposta
-    loss = gae.recon_loss(H_L, data.edge_index)
-
-    loss.backward()
-    optimizer.step()
-
-    return float(loss), H_L, att_tuple
+C_LOSS_GAMA = 10
+LEARNING_RATE = 0.01
+CALC_P_INTERVAL = 50
 
 
-def run_training(epochs, data):
-    # TODO: move all this training code to the right method
-    device = torch.device("cpu")
+class GaeRunner():
 
-    in_channels, hidden_channels, out_channels = data.x.shape[1], 16, 8
+    def __init__(self, epochs, data, b_edge_index, n_clusters):
+        self.epochs = epochs
+        self.data = data
+        self.b_edge_index = b_edge_index
+        self.n_clusters = n_clusters
+        self.Q = 0
+        self.P = 0
+        self.clusters_centroids = None
 
-    gae = GAE(gat_model.GATLayer(in_channels, hidden_channels, out_channels))
+    def run_training(self):
 
-    gae = gae.to(device)
-    gae = gae.float()
+        in_channels, hidden_channels, out_channels = self.data.x.shape[1], 64, 16
 
-    data = data.to(device)
+        gae = GAE(gat_model.GATLayer(in_channels, hidden_channels, out_channels))
 
-    optimizer = torch.optim.Adam(gae.parameters(), lr=0.01)
+        gae = gae.float()
 
-    losses = []
-    embs_list = []
-    att_tuple = [[]]
+        optimizer = torch.optim.Adam(gae.parameters(), lr=LEARNING_RATE)
 
-    for epoch in range(epochs):
-        loss, H_L, att_tuple = train_network_gae(gae, optimizer, data)
-        if epoch % 10 == 0:
-            print("==>", epoch, "- Loss:", loss)
-        losses.append(loss)
-        embs_list.append(H_L)
+        losses = []
+        att_tuple = [[]]
 
-    # plt.plot(losses, label="train_loss")
-    # plt.show()
+        for epoch in range(self.epochs):
+            loss, Z, att_tuple = self.__train_network(gae, optimizer, epoch)
+            if epoch % 10 == 0:
+                logging.info("==> " + str(epoch) + " - Loss: " + str(loss))
+            losses.append(loss)
 
-    return data, att_tuple
+        r = []
+        for line in self.Q:
+            r.append(np.argmax(line))
+        
+        print(normalized_mutual_info_score(self.data.y.tolist(), r))
+
+        return self.data, att_tuple
+    
+    def __train_network(self, gae, optimizer, epoch):
+
+        gae.train()
+        optimizer.zero_grad()
+
+        att_tuple, Z = gae.encode(
+            self.data.x.float(), self.b_edge_index.edge_index, self.b_edge_index.edge_attr
+        )
+
+        if self.clusters_centroids is None:
+            self.clusters_centroids = clustering_loss.get_clusters_centroids(Z, self.n_clusters)
+
+        self.Q = clustering_loss.calculate_q(self.clusters_centroids, Z)
+
+        if epoch % CALC_P_INTERVAL == 0:
+            self.P = clustering_loss.calculate_p(self.Q)
+
+        loss_clustering = clustering_loss.calculate_clustering_loss(self.Q, self.P)
+        
+        gae_loss = gae.recon_loss(Z, self.data.edge_index)
+        
+        total_loss = gae_loss + C_LOSS_GAMA*loss_clustering
+
+        total_loss.backward()
+        optimizer.step()
+
+        return float(total_loss), Z, att_tuple
