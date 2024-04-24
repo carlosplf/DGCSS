@@ -7,9 +7,9 @@ from sklearn.metrics.cluster import normalized_mutual_info_score
 from utils import clustering_loss
 
 
-C_LOSS_GAMA = 10
+C_LOSS_GAMA = 8
 LEARNING_RATE = 0.01
-CALC_P_INTERVAL = 50
+CALC_P_INTERVAL = 20
 
 
 class GaeRunner():
@@ -25,7 +25,7 @@ class GaeRunner():
 
     def run_training(self):
 
-        in_channels, hidden_channels, out_channels = self.data.x.shape[1], 64, 16
+        in_channels, hidden_channels, out_channels = self.data.x.shape[1], 128, 32
 
         gae = GAE(gat_model.GATLayer(in_channels, hidden_channels, out_channels))
 

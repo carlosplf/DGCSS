@@ -93,7 +93,7 @@ def run(epochs):
 
     adj_matrix = create_adj_matrix(data)
 
-    b_matrix = calc_t_order_neighbors(adj_matrix=adj_matrix, t=2)
+    b_matrix = calc_t_order_neighbors(adj_matrix=adj_matrix, t=4)
     
     b_src_tgt_tensor = adj_to_edge_index(b_matrix)
 
