@@ -46,7 +46,7 @@ class GaeRunner():
         for line in self.Q:
             r.append(np.argmax(line))
         
-        print(normalized_mutual_info_score(self.data.y.tolist(), r))
+        logging.info("Normalized mutual info score: " + str(normalized_mutual_info_score(self.data.y.tolist(), r)))
 
         return self.data, att_tuple
     
