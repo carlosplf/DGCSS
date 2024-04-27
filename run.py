@@ -23,7 +23,7 @@ def run(epochs):
 
     b_matrix = BMatrix(GRAPH_NUMBER_NODES)
 
-    b_matrix.calc_t_order_neighbors(data, t=3)
+    b_matrix.calc_t_order_neighbors(data, t=2)
     b_matrix.create_edge_index()
 
     runner = gae_runner.GaeRunner(epochs, data, b_matrix.edge_index, GRAPH_NUMBER_CLASSES)

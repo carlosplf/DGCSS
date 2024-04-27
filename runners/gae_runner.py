@@ -7,9 +7,9 @@ from sklearn.metrics.cluster import normalized_mutual_info_score
 from utils import clustering_loss
 
 
-C_LOSS_GAMA = 8
+C_LOSS_GAMA = 1
 LEARNING_RATE = 0.01
-CALC_P_INTERVAL = 20
+CALC_P_INTERVAL = 30
 
 
 class GaeRunner():
@@ -25,11 +25,20 @@ class GaeRunner():
 
     def run_training(self):
 
-        in_channels, hidden_channels, out_channels = self.data.x.shape[1], 128, 32
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+        logging.info("Running on " + str(device))
+
+        in_channels, hidden_channels, out_channels = self.data.x.shape[1], 256, 16
 
         gae = GAE(gat_model.GATLayer(in_channels, hidden_channels, out_channels))
 
         gae = gae.float()
+
+        # Move everything to the right device
+        gae = gae.to(device)
+        self.data = self.data.to(device)
+        self.b_edge_index = self.b_edge_index.to(device)
 
         optimizer = torch.optim.Adam(gae.parameters(), lr=LEARNING_RATE)
 

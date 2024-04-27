@@ -8,7 +8,7 @@ def get_clusters_centroids(Z, n_clusters):
     Runs KMeans clustering to find the centroids.
     """
     logging.info("Calculating centroids with K-Means...")
-    X = Z.detach().numpy()
+    X = Z.cpu().detach().numpy()
 
     kmeans = KMeans(n_clusters=n_clusters, random_state=0, n_init="auto").fit(X)
     return kmeans.cluster_centers_
@@ -22,7 +22,7 @@ def calculate_q(clusters_centroids, Z):
     if clusters_centroids is None:
         return None
     
-    nodes = Z.detach().numpy()
+    nodes = Z.cpu().detach().numpy()
     number_of_nodes = len(nodes)
     number_of_centroids = len(clusters_centroids)
 
