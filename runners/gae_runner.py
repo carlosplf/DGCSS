@@ -14,8 +14,7 @@ CALC_P_INTERVAL = 5
 LR_CHANGE_GAMMA = 0.1
 
 
-class GaeRunner():
-
+class GaeRunner:
     def __init__(self, epochs, data, b_edge_index, n_clusters):
         self.epochs = epochs
         self.data = data
@@ -27,7 +26,6 @@ class GaeRunner():
         self.first_interaction = True
 
     def run_training(self):
-
         # Check if CUDA is available and define the device to use.
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -59,22 +57,28 @@ class GaeRunner():
         for line in self.Q:
             r.append(np.argmax(line))
 
-        logging.info("Normalized mutual info score: " + str(normalized_mutual_info_score(self.data.y.tolist(), r)))
+        logging.info(
+            "Normalized mutual info score: "
+            + str(normalized_mutual_info_score(self.data.y.tolist(), r))
+        )
 
         return self.data, att_tuple
 
     def __train_network(self, gae, optimizer, epoch, scheduler):
-
         gae.train()
         optimizer.zero_grad()
 
         att_tuple, Z = gae.encode(
-            self.data.x.float(), self.b_edge_index.edge_index, self.b_edge_index.edge_attr
+            self.data.x.float(),
+            self.b_edge_index.edge_index,
+            self.b_edge_index.edge_attr,
         )
 
         if self.clusters_centroids is None:
             # First time running the treining, calculate centroids using KMeans
-            self.clusters_centroids = clustering_loss.get_clusters_centroids(Z, self.n_clusters)
+            self.clusters_centroids = clustering_loss.get_clusters_centroids(
+                Z, self.n_clusters
+            )
 
         self.Q = clustering_loss.calculate_q(self.clusters_centroids, Z)
 
