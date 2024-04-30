@@ -11,7 +11,7 @@ from utils import clustering_loss
 C_LOSS_GAMMA = 12
 LEARNING_RATE = 0.01
 CALC_P_INTERVAL = 5
-LR_CHANGE_GAMMA = 0.1
+LR_CHANGE_GAMMA = 0.5
 
 
 class GaeRunner:
