@@ -1,5 +1,7 @@
 import numpy as np
 import logging
+import torch
+import torch.nn.functional as F
 from sklearn.cluster import KMeans
 
 
@@ -8,10 +10,29 @@ def get_clusters_centroids(Z, n_clusters):
     Runs KMeans clustering to find the centroids.
     """
     logging.info("Calculating centroids with K-Means...")
-    X = Z.detach().numpy()
+    X = Z.cpu().detach().numpy()
 
     kmeans = KMeans(n_clusters=n_clusters, random_state=0, n_init="auto").fit(X)
     return kmeans.cluster_centers_
+
+
+def update_clusters_centers(clusters_centroids, Q_grad, step_size=0.01):
+    """
+    Update the cluster centroids based on the current clustering loss.
+    Args:
+        [[]]: clusters centroids.
+        Q_grad: gradient array from Q. 
+        (float) step_size: multiplier for the gradient subtraction
+    Return:
+        (array): New clusters centroids array.
+    """
+    new_centroids = []
+
+    for u in range(len(clusters_centroids)):
+        tmp_array = clusters_centroids[u] - (step_size * np.mean(Q_grad[u].detach().numpy()))
+        new_centroids.append(tmp_array)
+    
+    return new_centroids
 
 
 def calculate_q(clusters_centroids, Z):
@@ -22,7 +43,7 @@ def calculate_q(clusters_centroids, Z):
     if clusters_centroids is None:
         return None
     
-    nodes = Z.detach().numpy()
+    nodes = Z.cpu().detach().numpy()
     number_of_nodes = len(nodes)
     number_of_centroids = len(clusters_centroids)
 
@@ -47,6 +68,8 @@ def calculate_p(Q):
     
     if Q is None:
         return None
+
+    logging.info("Calculating P...")
     
     number_of_nodes = len(Q)
     number_of_centroids = len(Q[0])
@@ -79,3 +102,23 @@ def calculate_clustering_loss(Q, P):
             loss_clustering += (P[i][u] * (np.log(P[i][u]/Q[i][u])))
 
     return loss_clustering
+
+
+def kl_div_loss(Q, P):
+    """
+    Calculate the Clustering Loss using the KLDivLoss function.
+    https://pytorch.org/docs/stable/generated/torch.nn.KLDivLoss.html
+    Args:
+        (np array): Q
+        (np array): P
+    Return:
+        Loss Tensor, P and Q
+    """
+    # transforming into Tensor to have gradients and backwards calculation.
+    Q = torch.tensor(Q, requires_grad=True)
+    P = torch.tensor(P, requires_grad=True)
+
+    # Testing new clustering loss function.
+    loss_clustering = F.kl_div(Q.log(), P)
+
+    return loss_clustering, Q, P
