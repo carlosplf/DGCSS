@@ -1,5 +1,7 @@
 import numpy as np
 import logging
+import torch
+import torch.nn.functional as F
 from sklearn.cluster import KMeans
 
 
@@ -100,3 +102,23 @@ def calculate_clustering_loss(Q, P):
             loss_clustering += (P[i][u] * (np.log(P[i][u]/Q[i][u])))
 
     return loss_clustering
+
+
+def kl_div_loss(Q, P):
+    """
+    Calculate the Clustering Loss using the KLDivLoss function.
+    https://pytorch.org/docs/stable/generated/torch.nn.KLDivLoss.html
+    Args:
+        (np array): Q
+        (np array): P
+    Return:
+        Loss Tensor, P and Q
+    """
+    # transforming into Tensor to have gradients and backwards calculation.
+    Q = torch.tensor(Q, requires_grad=True)
+    P = torch.tensor(P, requires_grad=True)
+
+    # Testing new clustering loss function.
+    loss_clustering = F.kl_div(Q.log(), P)
+
+    return loss_clustering, Q, P

@@ -8,9 +8,10 @@ from sklearn.metrics.cluster import normalized_mutual_info_score
 from utils import clustering_loss
 
 
-C_LOSS_GAMA = 12
+C_LOSS_GAMMA = 12
 LEARNING_RATE = 0.01
-CALC_P_INTERVAL = 10
+CALC_P_INTERVAL = 5
+LR_CHANGE_GAMMA = 0.1
 
 
 class GaeRunner():
@@ -44,14 +45,14 @@ class GaeRunner():
         self.b_edge_index = self.b_edge_index.to(device)
 
         optimizer = torch.optim.Adam(gae.parameters(), lr=LEARNING_RATE)
+        scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=40, gamma=LR_CHANGE_GAMMA)
 
         losses = []
         att_tuple = [[]]
 
         for epoch in range(self.epochs):
-            loss, Z, att_tuple = self.__train_network(gae, optimizer, epoch)
-            if epoch % 10 == 0:
-                logging.info("==> " + str(epoch) + " - Loss: " + str(loss))
+            loss, Z, att_tuple = self.__train_network(gae, optimizer, epoch, scheduler)
+            logging.info("==> " + str(epoch) + " - Loss: " + str(loss))
             losses.append(loss)
 
         r = []
@@ -62,7 +63,7 @@ class GaeRunner():
 
         return self.data, att_tuple
 
-    def __train_network(self, gae, optimizer, epoch):
+    def __train_network(self, gae, optimizer, epoch, scheduler):
 
         gae.train()
         optimizer.zero_grad()
@@ -80,24 +81,19 @@ class GaeRunner():
         if epoch % CALC_P_INTERVAL == 0:
             self.P = clustering_loss.calculate_p(self.Q)
 
-        # loss_clustering = clustering_loss.calculate_clustering_loss(self.Q, self.P)
+        Lc, Q, P = clustering_loss.kl_div_loss(self.Q, self.P)
 
-        # transforming into Tensor to have gradients and backwards calculation.
-        Q = torch.tensor(self.Q, requires_grad=True)
-        P = torch.tensor(self.P, requires_grad=True)
-
-        loss_clustering = F.kl_div(Q.log(), P)
-        
         gae_loss = gae.recon_loss(Z, self.data.edge_index)
 
-        total_loss = gae_loss + C_LOSS_GAMA*loss_clustering
+        total_loss = gae_loss + C_LOSS_GAMMA*Lc
 
         total_loss.backward()
         
-        if self.first_interaction is False and loss_clustering != 0:
+        if self.first_interaction is False and Lc != 0:
             self.clusters_centroids = clustering_loss.update_clusters_centers(self.clusters_centroids, Q.grad)
 
         optimizer.step()
+        scheduler.step()
 
         self.first_interaction = False
 
