@@ -1,4 +1,5 @@
 import torch
+import torch.nn.functional as F
 import numpy as np
 import logging
 from torch_geometric.nn import GAE
@@ -7,9 +8,9 @@ from sklearn.metrics.cluster import normalized_mutual_info_score
 from utils import clustering_loss
 
 
-C_LOSS_GAMA = 1
+C_LOSS_GAMA = 12
 LEARNING_RATE = 0.01
-CALC_P_INTERVAL = 30
+CALC_P_INTERVAL = 10
 
 
 class GaeRunner():
@@ -22,9 +23,11 @@ class GaeRunner():
         self.Q = 0
         self.P = 0
         self.clusters_centroids = None
+        self.first_interaction = True
 
     def run_training(self):
 
+        # Check if CUDA is available and define the device to use.
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         logging.info("Running on " + str(device))
@@ -54,11 +57,11 @@ class GaeRunner():
         r = []
         for line in self.Q:
             r.append(np.argmax(line))
-        
+
         logging.info("Normalized mutual info score: " + str(normalized_mutual_info_score(self.data.y.tolist(), r)))
 
         return self.data, att_tuple
-    
+
     def __train_network(self, gae, optimizer, epoch):
 
         gae.train()
@@ -69,6 +72,7 @@ class GaeRunner():
         )
 
         if self.clusters_centroids is None:
+            # First time running the treining, calculate centroids using KMeans
             self.clusters_centroids = clustering_loss.get_clusters_centroids(Z, self.n_clusters)
 
         self.Q = clustering_loss.calculate_q(self.clusters_centroids, Z)
@@ -76,13 +80,27 @@ class GaeRunner():
         if epoch % CALC_P_INTERVAL == 0:
             self.P = clustering_loss.calculate_p(self.Q)
 
-        loss_clustering = clustering_loss.calculate_clustering_loss(self.Q, self.P)
+        # loss_clustering = clustering_loss.calculate_clustering_loss(self.Q, self.P)
+
+        # transforming into Tensor to have gradients and backwards calculation.
+        Q = torch.tensor(self.Q, requires_grad=True)
+        P = torch.tensor(self.P, requires_grad=True)
+
+        loss_clustering = F.kl_div(Q.log(), P)
         
+        logging.info("Lc: " + str(loss_clustering))
+
         gae_loss = gae.recon_loss(Z, self.data.edge_index)
-        
+
         total_loss = gae_loss + C_LOSS_GAMA*loss_clustering
 
         total_loss.backward()
+        
+        if self.first_interaction is False and loss_clustering != 0:
+            self.clusters_centroids = clustering_loss.update_clusters_centers(self.clusters_centroids, Q.grad)
+
         optimizer.step()
+
+        self.first_interaction = False
 
         return float(total_loss), Z, att_tuple

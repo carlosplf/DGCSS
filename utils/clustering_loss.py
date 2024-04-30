@@ -14,6 +14,26 @@ def get_clusters_centroids(Z, n_clusters):
     return kmeans.cluster_centers_
 
 
+def update_clusters_centers(clusters_centroids, Q_grad, step_size=0.01):
+    """
+    Update the cluster centroids based on the current clustering loss.
+    Args:
+        [[]]: clusters centroids.
+        Q_grad: gradient array from Q. 
+        (float) step_size: multiplier for the gradient subtraction
+    Return:
+        (array): New clusters centroids array.
+    """
+    logging.info("Updating clusters centroids...")
+    new_centroids = []
+
+    for u in range(len(clusters_centroids)):
+        tmp_array = clusters_centroids[u] - (step_size * np.mean(Q_grad[u].detach().numpy()))
+        new_centroids.append(tmp_array)
+    
+    return new_centroids
+
+
 def calculate_q(clusters_centroids, Z):
     """
     Calculate Q using Student’s t-distribution.
@@ -47,6 +67,8 @@ def calculate_p(Q):
     
     if Q is None:
         return None
+
+    logging.info("Calculating P...")
     
     number_of_nodes = len(Q)
     number_of_centroids = len(Q[0])
