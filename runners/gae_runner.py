@@ -88,8 +88,6 @@ class GaeRunner():
 
         loss_clustering = F.kl_div(Q.log(), P)
         
-        logging.info("Lc: " + str(loss_clustering))
-
         gae_loss = gae.recon_loss(Z, self.data.edge_index)
 
         total_loss = gae_loss + C_LOSS_GAMA*loss_clustering

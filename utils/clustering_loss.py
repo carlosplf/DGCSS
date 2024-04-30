@@ -24,7 +24,6 @@ def update_clusters_centers(clusters_centroids, Q_grad, step_size=0.01):
     Return:
         (array): New clusters centroids array.
     """
-    logging.info("Updating clusters centroids...")
     new_centroids = []
 
     for u in range(len(clusters_centroids)):
