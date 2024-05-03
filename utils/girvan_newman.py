@@ -2,6 +2,7 @@ import networkx as nx
 import itertools
 import logging
 import copy
+import numpy as np
 
 
 def run_gn(G, number_of_groups):
@@ -40,7 +41,8 @@ def calculate_Q_distribution_graph(G, communities, mod_score):
     all_mod_variations = []
     for node in G.nodes():
         all_mod_variations.append(calculate_Q_distribution_single_node(G, node, communities, mod_score))
-    print(all_mod_variations)
+
+    return all_mod_variations
 
 
 def calculate_Q_distribution_single_node(G, node, communities, mod_score):
@@ -88,4 +90,6 @@ def calculate_Q_distribution_single_node(G, node, communities, mod_score):
         # Calculate modularity score for this new set of communities.
         node_modularity_scores[c_idx] = get_modularity(G, comm_copy)
 
-    return node_modularity_scores
+    norm_scores = node_modularity_scores / np.sum(node_modularity_scores)
+
+    return norm_scores
