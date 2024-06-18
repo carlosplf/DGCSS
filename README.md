@@ -20,7 +20,9 @@ Até o presente momento, as sugestões de testes e variações podem incluir:
 
 Todos os testes e variações serão implementadas e documentadas neste repositório.
 
-## Authors:
+## Autores:
+
+Alan Demétrius Baria Valejo
 
 Carlos Pereira Lopes Filho
 
