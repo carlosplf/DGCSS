@@ -2,15 +2,25 @@
 
 :construction: **UNDER CONSTRUCTION** :construction:
 
-Analyzing how the Attention mechanism in GAT networks can be used to optimize algorithms for processing, clustering, and analysis in Graphs.
+## O projeto
 
-The aim of this project is to explore the applications of the Attention mechanism in graph processing, understanding how it can be valuable for community detection, clustering tasks, and graph optimization.
+Este repositório armazena o código relacionado ao meu projeto de Mestrado.
 
-Several existing research papers touch upon this concept, and our goal is to use them as a foundation to propose new algorithms and variations that can bring innovation to this research area.
+O objetivo do projeto é implementar o algoritmo proposto em [Deep neighbor-aware embedding for node clustering in attributed graphs](https://www.sciencedirect.com/science/article/abs/pii/S0031320321004118), comparar os resultados objetidos com os que foram apresentados no paper original e propor variações no algoritmo.
 
-So far, the approach that has piqued our interest the most is using Graph Autoencoder (GAE) with Graph Attention for community detection. Here, GAE helps identify clusters in the input graph and leverages the Attention mechanism to assess the significance of this information.
+### Testes e variações:
 
-### Authors:
+Até o presente momento, as sugestões de testes e variações podem incluir:
+
+- Novos mecanismos para a detecção de centroids;
+- Novas funções de Loss e variação de pesos;
+- Variações na estrutura e parâmetros da rede;
+- Novas funções para detecção das classes;
+- Testes paramétricos variados;
+
+Todos os testes e variações serão implementadas e documentadas neste repositório.
+
+## Authors:
 
 Carlos Pereira Lopes Filho
 
