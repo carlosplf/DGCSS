@@ -1,5 +1,4 @@
 import torch
-import torch.nn.functional as F
 import numpy as np
 import networkx as nx
 import logging
@@ -7,7 +6,6 @@ from torch_geometric.nn import GAE
 from gat_model import gat_model
 from sklearn.metrics.cluster import normalized_mutual_info_score
 from utils import clustering_loss
-from utils import girvan_newman
 from utils import fast_greedy
 from torch_geometric.utils import to_networkx
 
@@ -19,7 +17,8 @@ LR_CHANGE_GAMMA = 0.5
 
 
 class GaeRunner:
-    def __init__(self, epochs, data, b_edge_index, n_clusters, find_centroids_alg):
+    def __init__(self, epochs, data, b_edge_index, n_clusters,
+                 find_centroids_alg):
         self.epochs = epochs
         self.data = data
         self.b_edge_index = b_edge_index
@@ -38,9 +37,11 @@ class GaeRunner:
 
         logging.info("Running on " + str(device))
 
-        in_channels, hidden_channels, out_channels = self.data.x.shape[1], 256, 16
+        in_channels, hidden_channels, out_channels = \
+            self.data.x.shape[1], 256, 16
 
-        gae = GAE(gat_model.GATLayer(in_channels, hidden_channels, out_channels))
+        gae = GAE(gat_model.GATLayer(in_channels, hidden_channels,
+                                     out_channels))
 
         gae = gae.float()
 
@@ -50,13 +51,15 @@ class GaeRunner:
         self.b_edge_index = self.b_edge_index.to(device)
 
         optimizer = torch.optim.Adam(gae.parameters(), lr=LEARNING_RATE)
-        scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=40, gamma=LR_CHANGE_GAMMA)
+        scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=40,
+                                                    gamma=LR_CHANGE_GAMMA)
 
         losses = []
         att_tuple = [[]]
 
         for epoch in range(self.epochs):
-            loss, Z, att_tuple = self.__train_network(gae, optimizer, epoch, scheduler)
+            loss, Z, att_tuple = self.__train_network(gae, optimizer, epoch,
+                                                      scheduler)
             logging.info("==> " + str(epoch) + " - Loss: " + str(loss))
             losses.append(loss)
 
@@ -96,9 +99,10 @@ class GaeRunner:
         total_loss = gae_loss + C_LOSS_GAMMA*Lc
 
         total_loss.backward()
-        
+
         if self.first_interaction is False and Lc != 0:
-            self.clusters_centroids = clustering_loss.update_clusters_centers(self.clusters_centroids, Q.grad)
+            self.clusters_centroids = clustering_loss.update_clusters_centers(
+                self.clusters_centroids, Q.grad)
 
         optimizer.step()
         scheduler.step()
@@ -106,7 +110,7 @@ class GaeRunner:
         self.first_interaction = False
 
         return float(total_loss), Z, att_tuple
-    
+
     def _find_centroids(self, Z):
 
         if self.find_centroids_alg == "KMeans":
@@ -119,21 +123,22 @@ class GaeRunner:
         elif self.find_centroids_alg == "FastGreedy":
             logging.info("Using Fast Greedy to find the centroids...")
             G = nx.Graph(to_networkx(self.data, node_attrs=['x']))
-            
-            # First time running the treining, find communities using Fast Greedy
+
+            # First time running the treining, find communities
+            # using Fast Greedy
             self.communities = fast_greedy.run_fast_greedy(G, 5, 5)
-            
+
             # For each community, find the centroid
             centroids = fast_greedy.get_clusters_centroids(G, self.communities)
-            
+
             self.clusters_centroids = []
 
             # Get Z values for each centroid.
             for c in centroids:
-                 self.clusters_centroids.append(Z[c].tolist())
+                self.clusters_centroids.append(Z[c].tolist())
 
         else:
             logging.error("FIND_CENTROIDS_METHOD not known. Aborting...")
             self.clusters_centroids = []
-        
+
         logging.debug(self.clusters_centroids)
