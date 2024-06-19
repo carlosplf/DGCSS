@@ -11,13 +11,18 @@ parser = argparse.ArgumentParser()
 parser.add_argument(
     "--epochs", type=int, help="Define number of EPOCHS for training.", default=10
 )
-
+parser.add_argument(
+    '-d', '--debug', action='store_true'
+)
+parser.add_argument(
+    "--find_centroids_alg", type=str, help="Define the method to find centroids.", default='KMeans'
+)
 
 GRAPH_NUMBER_NODES = 250
 GRAPH_NUMBER_CLASSES = 5
 
 
-def run(epochs):
+def run(epochs, find_centroids_alg):
 
     data = get_cora_dataset()
 
@@ -26,7 +31,13 @@ def run(epochs):
     b_matrix.calc_t_order_neighbors(data, t=2)
     b_matrix.create_edge_index()
 
-    runner = gae_runner.GaeRunner(epochs, data, b_matrix.edge_index, GRAPH_NUMBER_CLASSES)
+    runner = gae_runner.GaeRunner(
+        epochs,
+        data,
+        b_matrix.edge_index,
+        GRAPH_NUMBER_CLASSES,
+        find_centroids_alg
+    )
 
     data, att_tuple = runner.run_training()
 
@@ -35,12 +46,16 @@ def run(epochs):
 
 if __name__ == "__main__":
 
-    logging.basicConfig(level=logging.INFO)
-
     args = parser.parse_args()
 
+    if args.debug:
+        logging.basicConfig(level=logging.DEBUG)
+    else:
+        logging.basicConfig(level=logging.INFO)
+
     epochs = args.epochs
+    find_centroids_alg = args.find_centroids_alg
 
     logging.info("Considering %s epochs", epochs)
 
-    run(epochs)
+    run(epochs, find_centroids_alg)

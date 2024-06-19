@@ -8,6 +8,7 @@ from gat_model import gat_model
 from sklearn.metrics.cluster import normalized_mutual_info_score
 from utils import clustering_loss
 from utils import girvan_newman
+from utils import fast_greedy
 from torch_geometric.utils import to_networkx
 
 
@@ -18,7 +19,7 @@ LR_CHANGE_GAMMA = 0.5
 
 
 class GaeRunner:
-    def __init__(self, epochs, data, b_edge_index, n_clusters):
+    def __init__(self, epochs, data, b_edge_index, n_clusters, find_centroids_alg):
         self.epochs = epochs
         self.data = data
         self.b_edge_index = b_edge_index
@@ -29,6 +30,7 @@ class GaeRunner:
         self.first_interaction = True
         self.communities = None
         self.mod_score = None
+        self.find_centroids_alg = find_centroids_alg
 
     def run_training(self):
         # Check if CUDA is available and define the device to use.
@@ -54,7 +56,7 @@ class GaeRunner:
         att_tuple = [[]]
 
         for epoch in range(self.epochs):
-            loss, Z, att_tuple = self.__train_network_v2(gae, optimizer, epoch, scheduler)
+            loss, Z, att_tuple = self.__train_network(gae, optimizer, epoch, scheduler)
             logging.info("==> " + str(epoch) + " - Loss: " + str(loss))
             losses.append(loss)
 
@@ -68,43 +70,6 @@ class GaeRunner:
         )
 
         return self.data, att_tuple
-    
-    def __train_network_v2(self, gae, optimizer, epoch, scheduler):
-        gae.train()
-        optimizer.zero_grad()
-
-        att_tuple, Z = gae.encode(
-            self.data.x.float(),
-            self.b_edge_index.edge_index,
-            self.b_edge_index.edge_attr,
-        )
-
-        print(att_tuple)
-
-        netxG = nx.Graph(to_networkx(self.data))
-        G = nx.path_graph(netxG)
-
-        if self.communities is None:
-            self.communities = girvan_newman.run_gn(G, 5)
-            self.mod_score = girvan_newman.get_modularity(G, self.communities)
-            logging.info("Modularity score: " + str(self.mod_score))
-            self.Q = girvan_newman.calculate_Q_distribution_graph(G, self.communities, self.mod_score)
-            self.P = clustering_loss.calculate_p(self.Q)
-
-        Lc, Q, P = clustering_loss.kl_div_loss(self.Q, self.P)
-
-        gae_loss = gae.recon_loss(Z, self.data.edge_index)
-
-        total_loss = gae_loss + C_LOSS_GAMMA*Lc
-
-        total_loss.backward()
-        
-        optimizer.step()
-        scheduler.step()
-
-        self.first_interaction = False
-
-        return float(total_loss), Z, att_tuple
 
     def __train_network(self, gae, optimizer, epoch, scheduler):
         gae.train()
@@ -117,10 +82,7 @@ class GaeRunner:
         )
 
         if self.clusters_centroids is None:
-            # First time running the treining, calculate centroids using KMeans
-            self.clusters_centroids = clustering_loss.get_clusters_centroids(
-                Z, self.n_clusters
-            )
+            self._find_centroids(Z)
 
         self.Q = clustering_loss.calculate_q(self.clusters_centroids, Z)
 
@@ -144,3 +106,34 @@ class GaeRunner:
         self.first_interaction = False
 
         return float(total_loss), Z, att_tuple
+    
+    def _find_centroids(self, Z):
+
+        if self.find_centroids_alg == "KMeans":
+            logging.info("Using KMeans to find the centroids...")
+            # First time running the treining, calculate centroids using KMeans
+            self.clusters_centroids = clustering_loss.get_clusters_centroids(
+                Z, self.n_clusters
+            )
+
+        elif self.find_centroids_alg == "FastGreedy":
+            logging.info("Using Fast Greedy to find the centroids...")
+            G = nx.Graph(to_networkx(self.data, node_attrs=['x']))
+            
+            # First time running the treining, find communities using Fast Greedy
+            self.communities = fast_greedy.run_fast_greedy(G, 5, 5)
+            
+            # For each community, find the centroid
+            centroids = fast_greedy.get_clusters_centroids(G, self.communities)
+            
+            self.clusters_centroids = []
+
+            # Get Z values for each centroid.
+            for c in centroids:
+                 self.clusters_centroids.append(Z[c].tolist())
+
+        else:
+            logging.error("FIND_CENTROIDS_METHOD not known. Aborting...")
+            self.clusters_centroids = []
+        
+        logging.debug(self.clusters_centroids)
