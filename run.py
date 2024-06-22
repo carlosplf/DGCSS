@@ -9,17 +9,20 @@ from utils.b_matrix import BMatrix
 parser = argparse.ArgumentParser()
 
 parser.add_argument(
-    "--epochs", type=int, help="Define number of EPOCHS for training.", default=10
+    "--epochs", type=int, help="Define number of EPOCHS for training.",
+    default=10
 )
 parser.add_argument(
     '-d', '--debug', action='store_true'
 )
 parser.add_argument(
-    "--find_centroids_alg", type=str, help="Define the method to find centroids.", default='KMeans'
+    "--find_centroids_alg", type=str, help="Define the method to find \
+        centroids. Options: KMeans, FastGreedy.", default='KMeans'
 )
 parser.add_argument(
     "--error_log_file", type=str, help="Define the CSV file name to save error logs.", default='error_log.csv'
 )
+
 
 GRAPH_NUMBER_NODES = 250
 GRAPH_NUMBER_CLASSES = 5

@@ -1,3 +1,8 @@
+"""
+Deprecated file. This approach is not working as expected.
+We may try again in the future.
+"""
+
 import networkx as nx
 import itertools
 import logging
@@ -10,19 +15,19 @@ def run_gn(G, number_of_groups):
     Execute the Girvan Newman algorithm and find the best communities
     set for the number of communities specified.
     Args:
-        (NetworkX Graph format): NetworkX Graph 
+        (NetworkX Graph format): NetworkX Graph
         (int) number_of_groups
     Return:
         (tuple): communities definition
     """
     logging.info("Running Girvan Newman algorithm...")
-    
+
     k = number_of_groups
-    
+
     comp = nx.community.girvan_newman(G)
     limited = itertools.takewhile(lambda c: len(c) <= k, comp)
     communities_final = None
-    
+
     for communities in limited:
         communities_final = tuple(sorted(c) for c in communities)
 
@@ -35,12 +40,14 @@ def get_modularity(G, communities):
 
 def calculate_Q_distribution_graph(G, communities, mod_score):
     """
-    For each node present in the Gragh G, calculate the modularity score variations.
+    For each node present in the Gragh G, calculate the modularity score
+    variations.
     """
     logging.info("Calculating modularity variation for Graph...")
     all_mod_variations = []
     for node in G.nodes():
-        all_mod_variations.append(calculate_Q_distribution_single_node(G, node, communities, mod_score))
+        all_mod_variations.append(calculate_Q_distribution_single_node(
+            G, node, communities, mod_score))
 
     return all_mod_variations
 
@@ -61,17 +68,17 @@ def calculate_Q_distribution_single_node(G, node, communities, mod_score):
         (list): Qx, the modularities distributions.
     """
     # Testing...
-    
+
     node_comm = 0
     node_modularity_scores = [0] * len(communities)
 
     # Create a new copy so we don't change the original.
     comm_copy = copy.deepcopy(communities)
-    
+
     for c_idx in range(len(comm_copy)):
         if node in comm_copy[c_idx]:
             node_comm = c_idx
-    
+
     node_modularity_scores[node_comm] = mod_score
 
     current_node_community = node_comm
@@ -79,14 +86,14 @@ def calculate_Q_distribution_single_node(G, node, communities, mod_score):
     for c_idx in range(len(comm_copy)):
         if c_idx == node_comm:
             continue
-        
+
         # Change node community
         comm_copy[current_node_community].remove(node)
         comm_copy[c_idx].append(node)
 
         # Save where the node is. Which community.
         current_node_community = c_idx
-       
+
         # Calculate modularity score for this new set of communities.
         node_modularity_scores[c_idx] = get_modularity(G, comm_copy)
 
