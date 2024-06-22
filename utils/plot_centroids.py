@@ -1,6 +1,6 @@
 from sklearn.decomposition import PCA
 import matplotlib.pyplot as plt
-import numpy as np
+import logging
 
 
 def plot_centroids(all_nodes, centroids):
@@ -32,6 +32,12 @@ def plot_centroids(all_nodes, centroids):
 
 
 def _plot(all_nodes_x, all_nodes_y, centroids_x, centroids_y):
-    plt.scatter(all_nodes_x, all_nodes_y, alpha=0.5)
-    plt.scatter(centroids_x, centroids_y, c=['#FF0000'], alpha=0.5)
+    logging.info("Ploting centroids... saving into file.")
+
+    # Add all nodes to the plot
+    plt.scatter(all_nodes_x, all_nodes_y)
+    
+    # Add centroids nodes to the plot
+    plt.scatter(centroids_x, centroids_y, c=['#FF0000'])
+    
     plt.savefig('test.png')
