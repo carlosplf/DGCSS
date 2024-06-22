@@ -20,6 +20,10 @@ Até o presente momento, as sugestões de testes e variações podem incluir:
 
 Todos os testes e variações serão implementadas e documentadas neste repositório.
 
+### Fast Greedy
+
+Uma das abordagens escolhidas para teste e comparação é a detecção de comunidades via Fast Greedy, e posteriormente o mapeamento dos centroids via grau de conectividade. Isso substitui o KMeans como mecanismos inicial de detecção dos centroides. Os resultados dos testes devem ser compartilhados via este repositório.
+
 ## Autores:
 
 Alan Demétrius Baria Valejo
