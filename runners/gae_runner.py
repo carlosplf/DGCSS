@@ -9,6 +9,8 @@ from sklearn.metrics.cluster import normalized_mutual_info_score
 from utils import clustering_loss
 from utils import girvan_newman
 from utils import fast_greedy
+from utils import csv_writer
+from utils import plot_centroids
 from torch_geometric.utils import to_networkx
 
 
@@ -31,6 +33,7 @@ class GaeRunner:
         self.communities = None
         self.mod_score = None
         self.find_centroids_alg = find_centroids_alg
+        self.error_log_filename = "error_log.csv"
 
     def run_training(self):
         # Check if CUDA is available and define the device to use.
@@ -54,11 +57,14 @@ class GaeRunner:
 
         losses = []
         att_tuple = [[]]
+        error_log = []
+        Z = None
 
         for epoch in range(self.epochs):
             loss, Z, att_tuple = self.__train_network(gae, optimizer, epoch, scheduler)
             logging.info("==> " + str(epoch) + " - Loss: " + str(loss))
             losses.append(loss)
+            error_log.append([epoch, loss])
 
         r = []
         for line in self.Q:
@@ -68,6 +74,8 @@ class GaeRunner:
             "Normalized mutual info score: "
             + str(normalized_mutual_info_score(self.data.y.tolist(), r))
         )
+        
+        csv_writer.write_erros(error_log, self.error_log_filename)
 
         return self.data, att_tuple
 
@@ -83,6 +91,8 @@ class GaeRunner:
 
         if self.clusters_centroids is None:
             self._find_centroids(Z)
+
+        plot_centroids.plot_centroids(Z, self.clusters_centroids)
 
         self.Q = clustering_loss.calculate_q(self.clusters_centroids, Z)
 
@@ -108,6 +118,9 @@ class GaeRunner:
         return float(total_loss), Z, att_tuple
     
     def _find_centroids(self, Z):
+        """
+        Find the centroids using the selected algorithm.
+        """
 
         if self.find_centroids_alg == "KMeans":
             logging.info("Using KMeans to find the centroids...")
