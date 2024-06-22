@@ -20,7 +20,8 @@ parser.add_argument(
         centroids. Options: KMeans, FastGreedy.", default='KMeans'
 )
 parser.add_argument(
-    "--error_log_file", type=str, help="Define the CSV file name to save error logs.", default='error_log.csv'
+    "--error_log_file", type=str, help="Define the CSV file name to \
+        save error logs.", default='error_log.csv'
 )
 
 

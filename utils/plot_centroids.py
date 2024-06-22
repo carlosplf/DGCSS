@@ -3,6 +3,9 @@ import matplotlib.pyplot as plt
 import logging
 
 
+CENTROIDS_PLOT_FILENAME = "centroids_plot.png"
+
+
 def plot_centroids(all_nodes, centroids):
     """
     Apply PCA (2) to all nodes and centroids and plot.
@@ -36,4 +39,4 @@ def _plot(all_nodes_x, all_nodes_y, centroids_x, centroids_y):
     # Add centroids nodes to the plot
     plt.scatter(centroids_x, centroids_y, c=['#FF0000'])
 
-    plt.savefig('test.png')
+    plt.savefig(CENTROIDS_PLOT_FILENAME)

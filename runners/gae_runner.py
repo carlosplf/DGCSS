@@ -12,7 +12,7 @@ from utils import plot_centroids
 from torch_geometric.utils import to_networkx
 
 
-C_LOSS_GAMMA = 6
+C_LOSS_GAMMA = 20
 LEARNING_RATE = 0.01
 CALC_P_INTERVAL = 5
 LR_CHANGE_GAMMA = 0.5
@@ -77,7 +77,7 @@ class GaeRunner:
             "Normalized mutual info score: "
             + str(normalized_mutual_info_score(self.data.y.tolist(), r))
         )
-        
+
         csv_writer.write_erros(error_log, self.error_log_filename)
 
         return self.data, att_tuple
@@ -94,8 +94,7 @@ class GaeRunner:
 
         if self.clusters_centroids is None:
             self._find_centroids(Z)
-
-        plot_centroids.plot_centroids(Z, self.clusters_centroids)
+            plot_centroids.plot_centroids(Z, self.clusters_centroids)
 
         self.Q = clustering_loss.calculate_q(self.clusters_centroids, Z)
 
