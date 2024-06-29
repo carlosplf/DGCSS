@@ -20,9 +20,14 @@ Até o presente momento, as sugestões de testes e variações podem incluir:
 
 Todos os testes e variações serão implementadas e documentadas neste repositório.
 
-### Fast Greedy
+### Centroides por Detecção de Comunidades
 
-Uma das abordagens escolhidas para teste e comparação é a detecção de comunidades via Fast Greedy, e posteriormente o mapeamento dos centroids via grau de conectividade. Isso substitui o KMeans como mecanismos inicial de detecção dos centroides. Os resultados dos testes devem ser compartilhados via este repositório.
+Uma das abordagens escolhidas para teste e comparação é a detecção de comunidades via algoritmos como Fast Greedy, e posteriormente o mapeamento dos centroids via grau de conectividade. Isso substitui o KMeans como mecanismos inicial de detecção dos centroides. Os resultados dos testes devem ser compartilhados via este repositório.
+
+### Centroides por Seed Expansion
+
+Outro mecanismo a ser avaliado por este projeto é o mecanismo de Seed Expansion para a detecção dos centroides iniciais. Dessa forma, não seria necessária a detecção de comunidades. Acreditamos que esta abordagem pode trazer um ganho de eficiência para o algoritmo como um todo, mas não temos ainda resultados para afirmar a qualidade de tal abordagem.
+
 
 ## Autores:
 

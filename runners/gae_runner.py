@@ -12,10 +12,10 @@ from utils import plot_centroids
 from torch_geometric.utils import to_networkx
 
 
-C_LOSS_GAMMA = 20
+C_LOSS_GAMMA = 20 # Multiplier for the Clustering Loss
 LEARNING_RATE = 0.01
-CALC_P_INTERVAL = 5
-LR_CHANGE_GAMMA = 0.5
+CALC_P_INTERVAL = 5 # Interval to calculate P (expensive)
+LR_CHANGE_GAMMA = 0.5 # Multiplier for the Learning Rate.
 
 
 class GaeRunner:
@@ -98,6 +98,7 @@ class GaeRunner:
 
         self.Q = clustering_loss.calculate_q(self.clusters_centroids, Z)
 
+        # Calculating P is expensive, so we need to define an interval.
         if epoch % CALC_P_INTERVAL == 0:
             self.P = clustering_loss.calculate_p(self.Q)
 
