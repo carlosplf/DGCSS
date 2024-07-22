@@ -13,10 +13,11 @@ from utils import k_core
 from torch_geometric.utils import to_networkx
 
 
-C_LOSS_GAMMA = 20 # Multiplier for the Clustering Loss
-LEARNING_RATE = 0.01
-CALC_P_INTERVAL = 5 # Interval to calculate P (expensive)
-LR_CHANGE_GAMMA = 0.8 # Multiplier for the Learning Rate.
+C_LOSS_GAMMA = 40 # Multiplier for the Clustering Loss
+LEARNING_RATE = 0.01 # Learning rate
+CALC_P_INTERVAL = 10 # Interval to calculate P (expensive)
+LR_CHANGE_GAMMA = 0.8 # Multiplier for the Learning Rate
+LR_CHANGE_EPOCHS = 50 # Interval to apply LR change
 
 
 class GaeRunner:
@@ -59,8 +60,8 @@ class GaeRunner:
         self.b_edge_index = self.b_edge_index.to(device)
 
         optimizer = torch.optim.Adam(gae.parameters(), lr=LEARNING_RATE)
-        scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=40,
-                                                    gamma=LR_CHANGE_GAMMA)
+        scheduler = torch.optim.lr_scheduler.StepLR(
+            optimizer, step_size=LR_CHANGE_EPOCHS, gamma=LR_CHANGE_GAMMA)
 
         losses = []
         att_tuple = [[]]
@@ -128,6 +129,8 @@ class GaeRunner:
     def _find_centroids(self, Z):
         """
         Find the centroids using the selected algorithm.
+        Args:
+            Z: The matrix representing the nodes AFTER the Encoding process.
         """
 
         if self.find_centroids_alg == "KMeans":
