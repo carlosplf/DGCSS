@@ -9,13 +9,15 @@ from utils import clustering_loss
 from utils import fast_greedy
 from utils import csv_writer
 from utils import plot_centroids
+from utils import k_core
 from torch_geometric.utils import to_networkx
 
 
-C_LOSS_GAMMA = 20 # Multiplier for the Clustering Loss
-LEARNING_RATE = 0.01
-CALC_P_INTERVAL = 5 # Interval to calculate P (expensive)
-LR_CHANGE_GAMMA = 0.5 # Multiplier for the Learning Rate.
+C_LOSS_GAMMA = 40 # Multiplier for the Clustering Loss
+LEARNING_RATE = 0.01 # Learning rate
+CALC_P_INTERVAL = 10 # Interval to calculate P (expensive)
+LR_CHANGE_GAMMA = 0.8 # Multiplier for the Learning Rate
+LR_CHANGE_EPOCHS = 50 # Interval to apply LR change
 
 
 class GaeRunner:
@@ -43,6 +45,10 @@ class GaeRunner:
         in_channels, hidden_channels, out_channels = \
             self.data.x.shape[1], 256, 16
 
+        msg = "Network structure: " + str(in_channels) + \
+            ", " + str(hidden_channels) + ", " + str(out_channels)
+        logging.info(msg)
+
         gae = GAE(gat_model.GATLayer(in_channels, hidden_channels,
                                      out_channels))
 
@@ -54,8 +60,8 @@ class GaeRunner:
         self.b_edge_index = self.b_edge_index.to(device)
 
         optimizer = torch.optim.Adam(gae.parameters(), lr=LEARNING_RATE)
-        scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=40,
-                                                    gamma=LR_CHANGE_GAMMA)
+        scheduler = torch.optim.lr_scheduler.StepLR(
+            optimizer, step_size=LR_CHANGE_EPOCHS, gamma=LR_CHANGE_GAMMA)
 
         losses = []
         att_tuple = [[]]
@@ -63,11 +69,11 @@ class GaeRunner:
         Z = None
 
         for epoch in range(self.epochs):
-            loss, Z, att_tuple = self.__train_network(gae, optimizer, epoch,
+            loss, Z, att_tuple, c_loss, gae_loss = self.__train_network(gae, optimizer, epoch,
                                                       scheduler)
             logging.info("==> " + str(epoch) + " - Loss: " + str(loss))
             losses.append(loss)
-            error_log.append([epoch, loss])
+            error_log.append([epoch, loss, c_loss, gae_loss])
 
         r = []
         for line in self.Q:
@@ -98,7 +104,6 @@ class GaeRunner:
 
         self.Q = clustering_loss.calculate_q(self.clusters_centroids, Z)
 
-        # Calculating P is expensive, so we need to define an interval.
         if epoch % CALC_P_INTERVAL == 0:
             self.P = clustering_loss.calculate_p(self.Q)
 
@@ -119,16 +124,17 @@ class GaeRunner:
 
         self.first_interaction = False
 
-        return float(total_loss), Z, att_tuple
+        return float(total_loss), Z, att_tuple, float(Lc), float(gae_loss)
 
     def _find_centroids(self, Z):
         """
         Find the centroids using the selected algorithm.
+        Args:
+            Z: The matrix representing the nodes AFTER the Encoding process.
         """
 
         if self.find_centroids_alg == "KMeans":
             logging.info("Using KMeans to find the centroids...")
-            # First time running the treining, calculate centroids using KMeans
             self.clusters_centroids = clustering_loss.get_clusters_centroids(
                 Z, self.n_clusters
             )
@@ -137,13 +143,26 @@ class GaeRunner:
             logging.info("Using Fast Greedy to find the centroids...")
             G = nx.Graph(to_networkx(self.data, node_attrs=['x']))
 
-            # First time running the treining, find communities
             # using Fast Greedy
             self.communities = fast_greedy.run_fast_greedy(G, 5, 5)
 
             # For each community, find the centroid
             centroids = fast_greedy.get_clusters_centroids(G, self.communities)
 
+            self.clusters_centroids = []
+
+            # Get Z values for each centroid.
+            for c in centroids:
+                self.clusters_centroids.append(Z[c].tolist())
+        
+        elif self.find_centroids_alg == "KCore":
+            logging.info("Using K-Core to find the centroids...")
+            
+            G = nx.Graph(to_networkx(self.data, node_attrs=['x']))
+
+            centroids = k_core.find_centroids(
+                G, self.n_clusters
+            )
             self.clusters_centroids = []
 
             # Get Z values for each centroid.
