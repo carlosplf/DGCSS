@@ -17,15 +17,22 @@ import utils.find_centroids_methods as find_centroids_methods
 # Ignore torch FutureWarning messages
 warnings.simplefilter(action="ignore", category=FutureWarning)
 
-C_LOSS_GAMMA = 30  # Multiplier for the Clustering Loss
 LEARNING_RATE = 0.01  # Learning rate
-CALC_P_INTERVAL = 10  # Interval to calculate P (expensive)
 LR_CHANGE_GAMMA = 0.8  # Multiplier for the Learning Rate
 LR_CHANGE_EPOCHS = 50  # Interval to apply LR change
 
 
 class GaeRunner:
-    def __init__(self, epochs, data, b_edge_index, n_clusters, find_centroids_alg):
+    def __init__(
+        self,
+        epochs,
+        data,
+        b_edge_index,
+        n_clusters,
+        find_centroids_alg,
+        c_loss_gama,
+        p_interval,
+    ):
         self.epochs = epochs
         self.data = data
         self.b_edge_index = b_edge_index
@@ -38,11 +45,13 @@ class GaeRunner:
         self.mod_score = None
         self.find_centroids_alg = find_centroids_alg
         self.error_log_filename = "error_log.csv"
+        self.c_loss_gama = c_loss_gama
+        self.p_interval = p_interval
 
     def __print_values(self):
-        logging.info("C_LOSS_GAMMA: " + str(C_LOSS_GAMMA))
+        logging.info("C_LOSS_GAMMA: " + str(self.c_loss_gama))
         logging.info("LEARNING_RATE: " + str(LEARNING_RATE))
-        logging.info("CALC_P_INTERVAL: " + str(CALC_P_INTERVAL))
+        logging.info("CALC_P_INTERVAL: " + str(self.p_interval))
         logging.info("LR_CHANGE_GAMMA: " + str(LR_CHANGE_GAMMA))
         logging.info("LR_CHANGE_EPOCHS: " + str(LR_CHANGE_EPOCHS))
 
@@ -123,14 +132,14 @@ class GaeRunner:
 
         self.Q = clustering_loss.calculate_q(self.clusters_centroids, Z)
 
-        if epoch % CALC_P_INTERVAL == 0:
+        if epoch % self.p_interval == 0:
             self.P = clustering_loss.calculate_p(self.Q)
 
         Lc, Q, P = clustering_loss.kl_div_loss(self.Q, self.P)
 
         gae_loss = gae.recon_loss(Z, self.data.edge_index)
 
-        total_loss = gae_loss + C_LOSS_GAMMA * Lc
+        total_loss = gae_loss + self.c_loss_gama * Lc
 
         total_loss.backward()
 
