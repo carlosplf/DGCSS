@@ -20,13 +20,17 @@ Até o presente momento, as sugestões de testes e variações podem incluir:
 
 Todos os testes e variações serão implementadas e documentadas neste repositório.
 
-### Centroides por Detecção de Comunidades
+### Centroides por detecção de comunidades
 
 Uma das abordagens escolhidas para teste e comparação é a detecção de comunidades via algoritmos como Fast Greedy, e posteriormente o mapeamento dos centroids via grau de conectividade. Isso substitui o KMeans como mecanismos inicial de detecção dos centroides. Os resultados dos testes devem ser compartilhados via este repositório.
 
-### Centroides por Seed Expansion
+### Centroides por seleção de sementes
 
 Outro mecanismo a ser avaliado por este projeto é o mecanismo de Seed Expansion para a detecção dos centroides iniciais. Dessa forma, não seria necessária a detecção de comunidades. Acreditamos que esta abordagem pode trazer um ganho de eficiência para o algoritmo como um todo, mas não temos ainda resultados para afirmar a qualidade de tal abordagem.
+
+### K-core ponderado
+
+Uma abordagem a ser implementada e testada por este projeto, é a implementação do K-core ponderado, que considera o peso das arestas na seleção dos subgrafos. O peso das arestas, por sua vez, deve ser definido com base na similaridade dos atributos dos nós. 
 
 
 ## Autores:
