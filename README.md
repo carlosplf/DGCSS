@@ -50,7 +50,7 @@ Até o presente momento, este projeto conta com a implementação dos seguintes 
 
 - KMeans;
 - Fastgreedy;
-- K-core (via _k-score_)
+- K-core (via _k-score_);
 - PageRank;
 
 ## Autores:
