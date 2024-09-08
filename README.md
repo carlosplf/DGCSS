@@ -4,15 +4,15 @@
 
 ## O projeto
 
-Este repositório armazena o código relacionado ao meu projeto de Mestrado.
+Através de uma metodologia hipotético-dedutiva, este trabalho tem como objetivo compreender melhor a dependência de agrupadores externos quando GNNs são utilizadas para tarefas de detecção de comunidades, e também propor alternativas a ponto de remover completamente a dependência de um agrupador externo na utilização de GNNs para este tipo de tarefa.
 
-O objetivo do projeto é implementar o algoritmo proposto em [Deep neighbor-aware embedding for node clustering in attributed graphs](https://www.sciencedirect.com/science/article/abs/pii/S0031320321004118), comparar os resultados objetidos com os que foram apresentados no paper original e propor variações no algoritmo.
+Este projeto implementa o algoritmo proposto em [Deep neighbor-aware embedding for node clustering in attributed graphs](https://www.sciencedirect.com/science/article/abs/pii/S0031320321004118), compara os resultados objetidos com os que foram apresentados no artigo original e propõe algumas variações no algoritmo.
 
 ### Testes e variações:
 
 Até o presente momento, as sugestões de testes e variações podem incluir:
 
-- Novos mecanismos para a detecção de centroids;
+- Novos mecanismos para a detecção de centróides;
 - Novas funções de Loss e variação de pesos;
 - Variações na estrutura e parâmetros da rede;
 - Novas funções para detecção das classes;
@@ -31,6 +31,18 @@ Outro mecanismo a ser avaliado por este projeto é o mecanismo de Seed Expansion
 ### K-core ponderado
 
 Uma abordagem a ser implementada e testada por este projeto, é a implementação do K-core ponderado, que considera o peso das arestas na seleção dos subgrafos. O peso das arestas, por sua vez, deve ser definido com base na similaridade dos atributos dos nós. 
+
+## Como executar
+
+Crie um ambiente virtual Python e instale as dependências necessárias:
+
+```
+python3 -m venv ./env
+source ./env/bin/activate
+pip install -r requirements.txt
+```
+
+O arquivo `run.py` executa o algoritmo e possui alguns parâmetros que podem ajustar o treinamento da rede. Para mais informações, execute: `python run.py --help`.
 
 
 ## Autores:
