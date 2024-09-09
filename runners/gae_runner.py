@@ -1,24 +1,21 @@
 import warnings
 import torch
 import numpy as np
-import networkx as nx
 import logging
 from torch_geometric.nn import GAE
 from gat_model import gat_model
 from sklearn.metrics.cluster import normalized_mutual_info_score
 from utils import clustering_loss
-from utils import fast_greedy
 from utils import csv_writer
 from utils import plot_centroids
-from utils import k_core
-from torch_geometric.utils import to_networkx
-import utils.find_centroids_methods as find_centroids_methods
+from centroids_finder import fastgreedy, kcore, weighted_modularity, pagerank, kmeans
+
 
 # Ignore torch FutureWarning messages
 warnings.simplefilter(action="ignore", category=FutureWarning)
 
 LEARNING_RATE = 0.01  # Learning rate
-LR_CHANGE_GAMMA = 0.8  # Multiplier for the Learning Rate
+LR_CHANGE_GAMMA = 0.5  # Multiplier for the Learning Rate
 LR_CHANGE_EPOCHS = 50  # Interval to apply LR change
 
 
@@ -162,52 +159,25 @@ class GaeRunner:
             Z: The matrix representing the nodes AFTER the Encoding process.
         """
 
-        if self.find_centroids_alg == "PageRank":
-            logging.info("Using PageRank to find the centroids...")
-            G = nx.Graph(to_networkx(self.data, node_attrs=["x"]))
+        # TODO: The methods to find centroids should be
+        # moved to the 'centroids_finder' module!
 
-            # Using PageRank to get centroids
-            centroids = find_centroids_methods.by_pagerank(G, 5)
-
-            self.clusters_centroids = []
-
-            # Get Z values for each centroid.
-            for c in centroids:
-                self.clusters_centroids.append(Z[c].tolist())
-
-        elif self.find_centroids_alg == "KMeans":
-            logging.info("Using KMeans to find the centroids...")
-            self.clusters_centroids = clustering_loss.get_clusters_centroids(
-                Z, self.n_clusters
+        if self.find_centroids_alg == "WFastGreedy":
+            self.clusters_centroids = weighted_modularity.select_centroids(
+                self.data, Z, "weight"
             )
 
+        elif self.find_centroids_alg == "PageRank":
+            self.clusters_centroids = pagerank.select_centroids(self.data, Z)
+
+        elif self.find_centroids_alg == "KMeans":
+            self.clusters_centroids = kmeans.select_centroids(Z, self.n_clusters)
+
         elif self.find_centroids_alg == "FastGreedy":
-            logging.info("Using Fast Greedy to find the centroids...")
-            G = nx.Graph(to_networkx(self.data, node_attrs=["x"]))
-
-            # using Fast Greedy
-            self.communities = fast_greedy.run_fast_greedy(G, 5, 5)
-
-            # For each community, find the centroid
-            centroids = fast_greedy.get_clusters_centroids(G, self.communities)
-
-            self.clusters_centroids = []
-
-            # Get Z values for each centroid.
-            for c in centroids:
-                self.clusters_centroids.append(Z[c].tolist())
+            self.clusters_centroids = fastgreedy.select_centroids(self.data, Z)
 
         elif self.find_centroids_alg == "KCore":
-            logging.info("Using K-Core to find the centroids...")
-
-            G = nx.Graph(to_networkx(self.data, node_attrs=["x"]))
-
-            centroids = k_core.find_centroids(G, self.n_clusters)
-            self.clusters_centroids = []
-
-            # Get Z values for each centroid.
-            for c in centroids:
-                self.clusters_centroids.append(Z[c].tolist())
+            self.clusters_centroids = kcore.select_centroids(self.data, Z)
 
         else:
             logging.error("FIND_CENTROIDS_ALG not known. Aborting...")

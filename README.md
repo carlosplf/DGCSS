@@ -8,6 +8,8 @@ Através de uma metodologia hipotético-dedutiva, este trabalho tem como objetiv
 
 Este projeto implementa o algoritmo proposto em [Deep neighbor-aware embedding for node clustering in attributed graphs](https://www.sciencedirect.com/science/article/abs/pii/S0031320321004118), compara os resultados objetidos com os que foram apresentados no artigo original e propõe algumas variações no algoritmo.
 
+![Estrutura do algoritmo proposto em "Deep neighbor-aware embedding for node clustering in attributed graphs"](./img/deep-neighbor-model-img.png)
+
 ### Testes e variações:
 
 Até o presente momento, as sugestões de testes e variações podem incluir:
@@ -28,9 +30,9 @@ Uma das abordagens escolhidas para teste e comparação é a detecção de comun
 
 Outro mecanismo a ser avaliado por este projeto é o mecanismo de Seed Expansion para a detecção dos centroides iniciais. Dessa forma, não seria necessária a detecção de comunidades. Acreditamos que esta abordagem pode trazer um ganho de eficiência para o algoritmo como um todo, mas não temos ainda resultados para afirmar a qualidade de tal abordagem.
 
-### K-core ponderado
+### Seleção de sementes com base em atributos dos nós
 
-Uma abordagem a ser implementada e testada por este projeto, é a implementação do K-core ponderado, que considera o peso das arestas na seleção dos subgrafos. O peso das arestas, por sua vez, deve ser definido com base na similaridade dos atributos dos nós. 
+Uma abordagem a ser implementada e testada por este projeto, é a implementação da seleção de sementes com base nos atributos dos nós. Isso pode ocorrer atribuindo a distância entre nós com base na semelhança entre atributos do nós, por exemplo. Uma possível abordagem, é a implementação de um K-Core ponderado, que considera o peso das arestas na seleção dos subgrafos. Outros algoritmos devem ser implementados e avaliados.
 
 ## Como executar
 
@@ -44,6 +46,14 @@ pip install -r requirements.txt
 
 O arquivo `run.py` executa o algoritmo e possui alguns parâmetros que podem ajustar o treinamento da rede. Para mais informações, execute: `python run.py --help`.
 
+### Seletores de centróides implementados:
+
+Até o presente momento, este projeto conta com a implementação dos seguintes algoritmos para a seleção de centróides:
+
+- KMeans;
+- Fastgreedy;
+- K-core (via _k-score_);
+- PageRank;
 
 ## Autores:
 
