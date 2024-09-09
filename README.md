@@ -8,6 +8,8 @@ Através de uma metodologia hipotético-dedutiva, este trabalho tem como objetiv
 
 Este projeto implementa o algoritmo proposto em [Deep neighbor-aware embedding for node clustering in attributed graphs](https://www.sciencedirect.com/science/article/abs/pii/S0031320321004118), compara os resultados objetidos com os que foram apresentados no artigo original e propõe algumas variações no algoritmo.
 
+![Estrutura do algoritmo proposto em "Deep neighbor-aware embedding for node clustering in attributed graphs"](./img/deep-neighbor-model-img.png)
+
 ### Testes e variações:
 
 Até o presente momento, as sugestões de testes e variações podem incluir:
