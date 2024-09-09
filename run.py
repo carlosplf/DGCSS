@@ -13,6 +13,7 @@ parser.add_argument(
 )
 parser.add_argument("-d", "--debug", action="store_true")
 parser.add_argument(
+    "-fa",
     "--find_centroids_alg",
     type=str,
     help="Define the method to find \
