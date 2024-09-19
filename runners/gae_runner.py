@@ -8,7 +8,15 @@ from sklearn.metrics.cluster import normalized_mutual_info_score
 from utils import clustering_loss
 from utils import csv_writer
 from utils import plot_centroids
-from centroids_finder import fastgreedy, kcore, weighted_modularity, pagerank, kmeans
+from centroids_finder import (
+    random_seeds,
+    fastgreedy,
+    kcore,
+    weighted_modularity,
+    pagerank,
+    kmeans,
+    betweenness_centrality,
+)
 
 
 # Ignore torch FutureWarning messages
@@ -29,6 +37,7 @@ class GaeRunner:
         find_centroids_alg,
         c_loss_gama,
         p_interval,
+        centroids_plot_file,
     ):
         self.epochs = epochs
         self.data = data
@@ -44,6 +53,7 @@ class GaeRunner:
         self.error_log_filename = "error_log.csv"
         self.c_loss_gama = c_loss_gama
         self.p_interval = p_interval
+        self.centroids_plot_file = centroids_plot_file
 
     def __print_values(self):
         logging.info("C_LOSS_GAMMA: " + str(self.c_loss_gama))
@@ -125,7 +135,9 @@ class GaeRunner:
 
         if self.clusters_centroids is None:
             self._find_centroids(Z)
-            plot_centroids.plot_centroids(Z, self.clusters_centroids)
+            plot_centroids.plot_centroids(
+                Z, self.clusters_centroids, self.centroids_plot_file
+            )
 
         self.Q = clustering_loss.calculate_q(self.clusters_centroids, Z)
 
@@ -159,12 +171,17 @@ class GaeRunner:
             Z: The matrix representing the nodes AFTER the Encoding process.
         """
 
-        # TODO: The methods to find centroids should be
-        # moved to the 'centroids_finder' module!
-
         if self.find_centroids_alg == "WFastGreedy":
             self.clusters_centroids = weighted_modularity.select_centroids(
                 self.data, Z, "weight"
+            )
+
+        elif self.find_centroids_alg == "Random":
+            self.clusters_centroids = random_seeds.select_centroids(Z)
+
+        elif self.find_centroids_alg == "BC":
+            self.clusters_centroids = betweenness_centrality.select_centroids(
+                self.data, Z
             )
 
         elif self.find_centroids_alg == "PageRank":
