@@ -37,6 +37,7 @@ class GaeRunner:
         find_centroids_alg,
         c_loss_gama,
         p_interval,
+        centroids_plot_file,
     ):
         self.epochs = epochs
         self.data = data
@@ -52,6 +53,7 @@ class GaeRunner:
         self.error_log_filename = "error_log.csv"
         self.c_loss_gama = c_loss_gama
         self.p_interval = p_interval
+        self.centroids_plot_file = centroids_plot_file
 
     def __print_values(self):
         logging.info("C_LOSS_GAMMA: " + str(self.c_loss_gama))
@@ -133,7 +135,9 @@ class GaeRunner:
 
         if self.clusters_centroids is None:
             self._find_centroids(Z)
-            plot_centroids.plot_centroids(Z, self.clusters_centroids)
+            plot_centroids.plot_centroids(
+                Z, self.clusters_centroids, self.centroids_plot_file
+            )
 
         self.Q = clustering_loss.calculate_q(self.clusters_centroids, Z)
 

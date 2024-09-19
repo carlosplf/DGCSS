@@ -6,7 +6,7 @@ import logging
 CENTROIDS_PLOT_FILENAME = "centroids_plot.png"
 
 
-def plot_centroids(all_nodes, centroids):
+def plot_centroids(all_nodes, centroids, filename=None):
     """
     Apply PCA (2) to all nodes and centroids and plot.
     Args:
@@ -25,18 +25,21 @@ def plot_centroids(all_nodes, centroids):
     centroids_x = [row[0] for row in centroids_pca]
     centroids_y = [row[1] for row in centroids_pca]
 
-    _plot(all_nodes_x, all_nodes_y, centroids_x, centroids_y)
+    _plot(all_nodes_x, all_nodes_y, centroids_x, centroids_y, filename)
 
     return None
 
 
-def _plot(all_nodes_x, all_nodes_y, centroids_x, centroids_y):
+def _plot(all_nodes_x, all_nodes_y, centroids_x, centroids_y, filename=None):
     logging.info("Ploting centroids... saving into file.")
 
     # Add all nodes to the plot
     plt.scatter(all_nodes_x, all_nodes_y)
 
     # Add centroids nodes to the plot
-    plt.scatter(centroids_x, centroids_y, c=['#FF0000'])
+    plt.scatter(centroids_x, centroids_y, c=["#FF0000"])
 
-    plt.savefig(CENTROIDS_PLOT_FILENAME)
+    if filename:
+        plt.savefig(filename)
+    else:
+        plt.savefig(CENTROIDS_PLOT_FILENAME)
