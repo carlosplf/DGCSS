@@ -1,6 +1,7 @@
 import argparse
 import logging
 
+import centroids_finder
 from runners import gae_runner
 from utils.graph_creator import get_cora_dataset
 from utils.b_matrix import BMatrix
@@ -21,6 +22,7 @@ parser.add_argument(
     default="KMeans",
 )
 parser.add_argument(
+    "-el",
     "--error_log_file",
     type=str,
     help="Define the CSV file name to \
@@ -41,13 +43,28 @@ parser.add_argument(
     help="Define the interval for calculating P.",
     default=10,
 )
+parser.add_argument(
+    "-cf",
+    "--centroids_plot_file",
+    type=str,
+    help="Define the PNG file name to \
+        save plot image.",
+    default="centroids_plot.png",
+)
 
 # TODO: Make this dynamic. Is set based on Cora dataset.
 GRAPH_NUMBER_NODES = 250
 GRAPH_NUMBER_CLASSES = 5
 
 
-def run(epochs, find_centroids_alg, error_log_file, c_loss_gama, p_interval):
+def run(
+    epochs,
+    find_centroids_alg,
+    error_log_file,
+    c_loss_gama,
+    p_interval,
+    centroids_plot_file,
+):
     data = get_cora_dataset()
 
     b_matrix = BMatrix(GRAPH_NUMBER_NODES)
@@ -63,6 +80,7 @@ def run(epochs, find_centroids_alg, error_log_file, c_loss_gama, p_interval):
         find_centroids_alg,
         c_loss_gama,
         p_interval,
+        centroids_plot_file,
     )
 
     runner.error_log_filename = error_log_file
@@ -85,7 +103,15 @@ if __name__ == "__main__":
     p_interval = args.p_interval
     find_centroids_alg = args.find_centroids_alg
     error_log_file = args.error_log_file
+    centroids_plot_file = args.centroids_plot_file
 
     logging.info("Considering %s epochs", epochs)
 
-    run(epochs, find_centroids_alg, error_log_file, c_loss_gama, p_interval)
+    run(
+        epochs,
+        find_centroids_alg,
+        error_log_file,
+        c_loss_gama,
+        p_interval,
+        centroids_plot_file,
+    )
