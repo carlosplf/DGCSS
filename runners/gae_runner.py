@@ -24,6 +24,7 @@ warnings.simplefilter(action="ignore", category=FutureWarning)
 LEARNING_RATE = 0.01  # Learning rate
 LR_CHANGE_GAMMA = 0.8  # Multiplier for the Learning Rate
 LR_CHANGE_EPOCHS = 50  # Interval to apply LR change
+UPDATE_CLUSTERS_STEP_SIZE = 1  # Step size for clusters update
 
 
 class GaeRunner:
@@ -72,17 +73,11 @@ class GaeRunner:
 
         in_channels, hidden_channels, out_channels = self.data.x.shape[1], 256, 16
 
-        msg = (
-            "Network structure: "
-            + str(in_channels)
-            + ", "
-            + str(hidden_channels)
-            + ", "
-            + str(out_channels)
-        )
-        logging.info(msg)
+        # 1 Hidden Layer GAT
+        # gae = GAE(gat_model.GATLayer(in_channels, hidden_channels, out_channels))
 
-        gae = GAE(gat_model.GATLayer(in_channels, hidden_channels, out_channels))
+        # 2 Hidden Layer GAT
+        gae = GAE(gat_model.GAT2Layer(in_channels, [512, 256], out_channels))
 
         gae = gae.float()
 
@@ -99,6 +94,7 @@ class GaeRunner:
         losses = []
         att_tuple = [[]]
         loss_log = []
+        best_nmi = 0
         Z = None
 
         for epoch in range(self.epochs):
@@ -109,28 +105,29 @@ class GaeRunner:
             losses.append(loss)
             loss_log.append([epoch, loss, c_loss, gae_loss])
 
-            # For each X epochs, calculate NMI
+            # Debug
+            logging.info("GAE Loss: " + str(gae_loss))
+            logging.info("Clustering Loss: " + str(10000 * c_loss))
+
             if epoch % 10 == 0:
                 r = []
 
                 for line in self.Q:  # pyright: ignore
                     r.append(np.argmax(line))
 
-                logging.info(
-                    "Normalized mutual info score: "
-                    + str(normalized_mutual_info_score(self.data.y.tolist(), r))
+                nmi = normalized_mutual_info_score(self.data.y.tolist(), r)
+
+                logging.info("==> NMI: " + str(nmi))
+
+                if nmi > best_nmi:
+                    best_nmi = nmi
+
+                clustering_filename = "clustering_" + str(epoch) + ".png"
+                plot_centroids.plot_clustering(
+                    Z.detach().cpu().numpy(), r, clustering_filename
                 )
 
-        # Calculate final NMI
-        r = []
-
-        for line in self.Q:  # pyright: ignore
-            r.append(np.argmax(line))
-
-        logging.info(
-            "Normalized mutual info score: "
-            + str(normalized_mutual_info_score(self.data.y.tolist(), r))
-        )
+        logging.info("Best NMI: " + str(best_nmi))
 
         csv_writer.write_loss(loss_log, self.loss_log_file)
 
@@ -167,7 +164,7 @@ class GaeRunner:
 
         if self.first_interaction is False and Lc != 0:
             self.clusters_centroids = clustering_loss.update_clusters_centers(
-                self.clusters_centroids, Q.grad
+                self.clusters_centroids, Q.grad, step_size=UPDATE_CLUSTERS_STEP_SIZE
             )
 
         optimizer.step()

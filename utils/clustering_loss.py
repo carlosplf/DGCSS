@@ -112,6 +112,6 @@ def kl_div_loss(Q, P):
     P = torch.tensor(P, requires_grad=True)
 
     # Testing new clustering loss function.
-    loss_clustering = F.kl_div(Q.log(), P)
+    loss_clustering = F.kl_div(Q.log(), P, reduction="batchmean")
 
     return loss_clustering, Q, P
