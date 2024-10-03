@@ -1,3 +1,4 @@
+from pickle import decode_long
 import warnings
 import torch
 import numpy as np
@@ -7,7 +8,7 @@ from gat_model import gat_model
 from sklearn.metrics.cluster import normalized_mutual_info_score
 from utils import clustering_loss
 from utils import csv_writer
-from utils import plot_centroids
+from utils import plot_functions
 from centroids_finder import (
     random_seeds,
     fastgreedy,
@@ -24,7 +25,7 @@ warnings.simplefilter(action="ignore", category=FutureWarning)
 LEARNING_RATE = 0.01  # Learning rate
 LR_CHANGE_GAMMA = 0.8  # Multiplier for the Learning Rate
 LR_CHANGE_EPOCHS = 50  # Interval to apply LR change
-UPDATE_CLUSTERS_STEP_SIZE = 1  # Step size for clusters update
+UPDATE_CLUSTERS_STEP_SIZE = 0.01  # Step size for clusters update
 
 
 class GaeRunner:
@@ -74,10 +75,10 @@ class GaeRunner:
         in_channels, hidden_channels, out_channels = self.data.x.shape[1], 256, 16
 
         # 1 Hidden Layer GAT
-        # gae = GAE(gat_model.GATLayer(in_channels, hidden_channels, out_channels))
+        gae = GAE(gat_model.GATLayer(in_channels, hidden_channels, out_channels))
 
         # 2 Hidden Layer GAT
-        gae = GAE(gat_model.GAT2Layer(in_channels, [512, 256], out_channels))
+        # gae = GAE(gat_model.GAT2Layer(in_channels, [512, 256], out_channels))
 
         gae = gae.float()
 
@@ -105,11 +106,10 @@ class GaeRunner:
             losses.append(loss)
             loss_log.append([epoch, loss, c_loss, gae_loss])
 
-            # Debug
-            logging.info("GAE Loss: " + str(gae_loss))
-            logging.info("Clustering Loss: " + str(10000 * c_loss))
+            logging.debug("GAE Loss: " + str(gae_loss))
+            logging.debug("Clustering Loss: " + str(10000 * c_loss))
 
-            if epoch % 10 == 0:
+            if epoch % 2 == 0:
                 r = []
 
                 for line in self.Q:  # pyright: ignore
@@ -123,11 +123,11 @@ class GaeRunner:
                     best_nmi = nmi
 
                 clustering_filename = "clustering_" + str(epoch) + ".png"
-                plot_centroids.plot_clustering(
+                plot_functions.plot_clustering(
                     Z.detach().cpu().numpy(), r, clustering_filename
                 )
 
-        logging.info("Best NMI: " + str(best_nmi))
+        logging.info("==> Best NMI score: " + str(best_nmi))
 
         csv_writer.write_loss(loss_log, self.loss_log_file)
 
@@ -145,7 +145,7 @@ class GaeRunner:
 
         if self.clusters_centroids is None:
             self._find_centroids(Z)
-            plot_centroids.plot_centroids(
+            plot_functions.plot_centroids(
                 Z, self.clusters_centroids, self.centroids_plot_file
             )
 

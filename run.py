@@ -1,10 +1,5 @@
 import argparse
 import logging
-
-from networkx import number_of_nodes
-from scipy.sparse import find
-
-import centroids_finder
 from runners import gae_runner
 from utils.graph_creator import get_planetoid_dataset
 from utils.b_matrix import BMatrix
@@ -83,6 +78,9 @@ def run(
 
     b_matrix = BMatrix(data)
 
+    logging.debug("B Matrix:")
+    logging.debug(str(b_matrix))
+
     b_matrix.calc_t_order_neighbors(data, t=2)
     b_matrix.create_edge_index()
 
@@ -99,6 +97,8 @@ def run(
     )
 
     data, att_tuple = runner.run_training()
+
+    logging.debug("Attention values: " + str(att_tuple))
 
     return True
 
