@@ -22,9 +22,9 @@ from centroids_finder import (
 # Ignore torch FutureWarning messages
 warnings.simplefilter(action="ignore", category=FutureWarning)
 
-LEARNING_RATE = 0.01  # Learning rate
-LR_CHANGE_GAMMA = 0.8  # Multiplier for the Learning Rate
-LR_CHANGE_EPOCHS = 50  # Interval to apply LR change
+LEARNING_RATE = 0.001  # Learning rate
+LR_CHANGE_GAMMA = 0.5  # Multiplier for the Learning Rate
+LR_CHANGE_EPOCHS = 30  # Interval to apply LR change
 UPDATE_CLUSTERS_STEP_SIZE = 0.01  # Step size for clusters update
 
 
@@ -72,13 +72,13 @@ class GaeRunner:
 
         logging.info("Running on " + str(device))
 
-        in_channels, hidden_channels, out_channels = self.data.x.shape[1], 256, 16
+        in_channels, hidden_channels, out_channels = self.data.x.shape[1], 1024, 512
 
         # 1 Hidden Layer GAT
         gae = GAE(gat_model.GATLayer(in_channels, hidden_channels, out_channels))
 
         # 2 Hidden Layer GAT
-        # gae = GAE(gat_model.GAT2Layer(in_channels, [512, 256], out_channels))
+        # gae = GAE(gat_model.GAT2Layer(in_channels, [2048, 1024], out_channels))
 
         gae = gae.float()
 
@@ -122,7 +122,7 @@ class GaeRunner:
                 if nmi > best_nmi:
                     best_nmi = nmi
 
-                clustering_filename = "clustering_" + str(epoch) + ".png"
+                clustering_filename = "plots/clustering_" + str(epoch) + ".png"
                 plot_functions.plot_clustering(
                     Z.detach().cpu().numpy(), r, clustering_filename
                 )
