@@ -4,8 +4,8 @@ from sklearn.manifold import TSNE
 from sklearn.decomposition import PCA
 
 
-CENTROIDS_PLOT_FILENAME = "centroids_plot.png"
-CLUSTERING_FILENAME = "clustering_plot.png"
+CENTROIDS_PLOT_FILENAME = "plots/centroids_plot.png"
+CLUSTERING_FILENAME = "plots/clustering_plot.png"
 
 
 def plot_centroids(all_nodes, centroids, filename=None):
@@ -51,7 +51,7 @@ def plot_clustering(all_nodes_x, all_nodes_y, filename=CLUSTERING_FILENAME):
     logging.debug("Finding t-SNE 2 dimension data...")
 
     X_embedded = TSNE(
-        n_components=2, learning_rate="auto", init="random", perplexity=30
+        n_components=2, learning_rate="auto", init="random", perplexity=40
     ).fit_transform(all_nodes_x)
 
     logging.debug("Ploting clustering result and saving into file.")
