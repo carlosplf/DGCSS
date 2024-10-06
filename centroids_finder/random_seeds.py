@@ -2,10 +2,10 @@ import logging
 import random
 
 
-def select_centroids(Z, num_of_communities=5):
+def select_centroids(Z, n_clusters):
     logging.info("Using Random Seeds to find the centroids...")
 
-    centroids = random.sample(range(1, len(Z)), num_of_communities)
+    centroids = random.sample(range(1, len(Z)), n_clusters)
 
     clusters_centroids = []
 

@@ -1,9 +1,7 @@
 import argparse
 import logging
-
-import centroids_finder
 from runners import gae_runner
-from utils.graph_creator import get_cora_dataset
+from utils.graph_creator import get_planetoid_dataset
 from utils.b_matrix import BMatrix
 
 
@@ -22,12 +20,19 @@ parser.add_argument(
     default="KMeans",
 )
 parser.add_argument(
-    "-el",
-    "--error_log_file",
+    "-ds",
+    "--dataset_name",
+    type=str,
+    help="Define the dataset to use.",
+    default="Cora",
+)
+parser.add_argument(
+    "-log",
+    "--loss_log_file",
     type=str,
     help="Define the CSV file name to \
-        save error logs.",
-    default="error_log.csv",
+        save loss logs.",
+    default="loss_log.csv",
 )
 parser.add_argument(
     "-cl",
@@ -52,40 +57,48 @@ parser.add_argument(
     default="centroids_plot.png",
 )
 
-# TODO: Make this dynamic. Is set based on Cora dataset.
-GRAPH_NUMBER_NODES = 250
-GRAPH_NUMBER_CLASSES = 5
-
 
 def run(
     epochs,
     find_centroids_alg,
-    error_log_file,
+    loss_log_file,
     c_loss_gama,
     p_interval,
     centroids_plot_file,
+    dataset_name,
 ):
-    data = get_cora_dataset()
+    dataset = get_planetoid_dataset(name=dataset_name)
 
-    b_matrix = BMatrix(GRAPH_NUMBER_NODES)
+    data = dataset[0]
+    num_classes = dataset.num_classes
+    num_nodes = len(data.x)  # pyright: ignore
+
+    logging.info("Number of nodes: " + str(num_nodes))
+    logging.info("Number of classes: " + str(num_classes))
+
+    b_matrix = BMatrix(data)
+
+    logging.debug("B Matrix:")
+    logging.debug(str(b_matrix))
 
     b_matrix.calc_t_order_neighbors(data, t=2)
     b_matrix.create_edge_index()
 
     runner = gae_runner.GaeRunner(
-        epochs,
-        data,
-        b_matrix.edge_index,
-        GRAPH_NUMBER_CLASSES,
-        find_centroids_alg,
-        c_loss_gama,
-        p_interval,
-        centroids_plot_file,
+        epochs=epochs,
+        data=data,
+        b_edge_index=b_matrix.edge_index,
+        n_clusters=num_classes,
+        find_centroids_alg=find_centroids_alg,
+        c_loss_gama=c_loss_gama,
+        p_interval=p_interval,
+        centroids_plot_file=centroids_plot_file,
+        loss_log_file=loss_log_file,
     )
 
-    runner.error_log_filename = error_log_file
-
     data, att_tuple = runner.run_training()
+
+    logging.debug("Attention values: " + str(att_tuple))
 
     return True
 
@@ -102,16 +115,20 @@ if __name__ == "__main__":
     c_loss_gama = args.c_loss_gama
     p_interval = args.p_interval
     find_centroids_alg = args.find_centroids_alg
-    error_log_file = args.error_log_file
+    loss_log_file = args.loss_log_file
     centroids_plot_file = args.centroids_plot_file
+    dataset_name = args.dataset_name
+
+    logging.info("Chosen dataset: " + str(dataset_name))
 
     logging.info("Considering %s epochs", epochs)
 
     run(
         epochs,
         find_centroids_alg,
-        error_log_file,
+        loss_log_file,
         c_loss_gama,
         p_interval,
         centroids_plot_file,
+        dataset_name,
     )
