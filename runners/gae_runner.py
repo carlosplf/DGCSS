@@ -72,7 +72,7 @@ class GaeRunner:
 
         logging.info("Running on " + str(device))
 
-        in_channels, hidden_channels, out_channels = self.data.x.shape[1], 1024, 512
+        in_channels, hidden_channels, out_channels = self.data.x.shape[1], 1024, 256
 
         # 1 Hidden Layer GAT
         gae = GAE(gat_model.GATLayer(in_channels, hidden_channels, out_channels))
