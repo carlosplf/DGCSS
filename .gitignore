@@ -12,6 +12,7 @@ Cora/*
 # Performance logs folder
 logs/*
 doc_tests/*
+plots/*
 
 # Benchmark dataset
 data_graph_exp/*
