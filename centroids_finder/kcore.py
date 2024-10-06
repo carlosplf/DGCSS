@@ -4,7 +4,7 @@ import networkx as nx
 from torch_geometric.utils import to_networkx
 
 
-def select_centroids(data, Z, n_clusters=5):
+def select_centroids(data, Z, n_clusters):
     logging.info("Using K-Core to find the centroids...")
 
     G = nx.Graph(to_networkx(data, node_attrs=["x"]))

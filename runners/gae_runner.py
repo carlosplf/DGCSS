@@ -1,3 +1,4 @@
+from pickle import decode_long
 import warnings
 import torch
 import numpy as np
@@ -7,7 +8,7 @@ from gat_model import gat_model
 from sklearn.metrics.cluster import normalized_mutual_info_score
 from utils import clustering_loss
 from utils import csv_writer
-from utils import plot_centroids
+from utils import plot_functions
 from centroids_finder import (
     random_seeds,
     fastgreedy,
@@ -18,13 +19,13 @@ from centroids_finder import (
     betweenness_centrality,
 )
 
-
 # Ignore torch FutureWarning messages
 warnings.simplefilter(action="ignore", category=FutureWarning)
 
-LEARNING_RATE = 0.01  # Learning rate
+LEARNING_RATE = 0.001  # Learning rate
 LR_CHANGE_GAMMA = 0.5  # Multiplier for the Learning Rate
-LR_CHANGE_EPOCHS = 50  # Interval to apply LR change
+LR_CHANGE_EPOCHS = 30  # Interval to apply LR change
+UPDATE_CLUSTERS_STEP_SIZE = 0.01  # Step size for clusters update
 
 
 class GaeRunner:
@@ -38,6 +39,7 @@ class GaeRunner:
         c_loss_gama,
         p_interval,
         centroids_plot_file,
+        loss_log_file,
     ):
         self.epochs = epochs
         self.data = data
@@ -50,10 +52,10 @@ class GaeRunner:
         self.communities = None
         self.mod_score = None
         self.find_centroids_alg = find_centroids_alg
-        self.error_log_filename = "error_log.csv"
         self.c_loss_gama = c_loss_gama
         self.p_interval = p_interval
         self.centroids_plot_file = centroids_plot_file
+        self.loss_log_file = loss_log_file
 
     def __print_values(self):
         logging.info("C_LOSS_GAMMA: " + str(self.c_loss_gama))
@@ -70,19 +72,13 @@ class GaeRunner:
 
         logging.info("Running on " + str(device))
 
-        in_channels, hidden_channels, out_channels = self.data.x.shape[1], 512, 16
+        in_channels, hidden_channels, out_channels = self.data.x.shape[1], 1024, 256
 
-        msg = (
-            "Network structure: "
-            + str(in_channels)
-            + ", "
-            + str(hidden_channels)
-            + ", "
-            + str(out_channels)
-        )
-        logging.info(msg)
-
+        # 1 Hidden Layer GAT
         gae = GAE(gat_model.GATLayer(in_channels, hidden_channels, out_channels))
+
+        # 2 Hidden Layer GAT
+        # gae = GAE(gat_model.GAT2Layer(in_channels, [2048, 1024], out_channels))
 
         gae = gae.float()
 
@@ -98,7 +94,8 @@ class GaeRunner:
 
         losses = []
         att_tuple = [[]]
-        error_log = []
+        loss_log = []
+        best_nmi = 0
         Z = None
 
         for epoch in range(self.epochs):
@@ -107,19 +104,32 @@ class GaeRunner:
             )
             logging.info("==> " + str(epoch) + " - Loss: " + str(loss))
             losses.append(loss)
-            error_log.append([epoch, loss, c_loss, gae_loss])
+            loss_log.append([epoch, loss, c_loss, gae_loss])
 
-        r = []
+            logging.debug("GAE Loss: " + str(gae_loss))
+            logging.debug("Clustering Loss: " + str(10000 * c_loss))
 
-        for line in self.Q:  # pyright: ignore
-            r.append(np.argmax(line))
+            if epoch % 2 == 0:
+                r = []
 
-        logging.info(
-            "Normalized mutual info score: "
-            + str(normalized_mutual_info_score(self.data.y.tolist(), r))
-        )
+                for line in self.Q:  # pyright: ignore
+                    r.append(np.argmax(line))
 
-        csv_writer.write_erros(error_log, self.error_log_filename)
+                nmi = normalized_mutual_info_score(self.data.y.tolist(), r)
+
+                logging.info("==> NMI: " + str(nmi))
+
+                if nmi > best_nmi:
+                    best_nmi = nmi
+
+                clustering_filename = "plots/clustering_" + str(epoch) + ".png"
+                plot_functions.plot_clustering(
+                    Z.detach().cpu().numpy(), r, clustering_filename
+                )
+
+        logging.info("==> Best NMI score: " + str(best_nmi))
+
+        csv_writer.write_loss(loss_log, self.loss_log_file)
 
         return self.data, att_tuple
 
@@ -135,7 +145,7 @@ class GaeRunner:
 
         if self.clusters_centroids is None:
             self._find_centroids(Z)
-            plot_centroids.plot_centroids(
+            plot_functions.plot_centroids(
                 Z, self.clusters_centroids, self.centroids_plot_file
             )
 
@@ -154,7 +164,7 @@ class GaeRunner:
 
         if self.first_interaction is False and Lc != 0:
             self.clusters_centroids = clustering_loss.update_clusters_centers(
-                self.clusters_centroids, Q.grad
+                self.clusters_centroids, Q.grad, step_size=UPDATE_CLUSTERS_STEP_SIZE
             )
 
         optimizer.step()
@@ -173,28 +183,34 @@ class GaeRunner:
 
         if self.find_centroids_alg == "WFastGreedy":
             self.clusters_centroids = weighted_modularity.select_centroids(
-                self.data, Z, "weight"
+                self.data, Z, "weight", self.n_clusters
             )
 
         elif self.find_centroids_alg == "Random":
-            self.clusters_centroids = random_seeds.select_centroids(Z)
+            self.clusters_centroids = random_seeds.select_centroids(Z, self.n_clusters)
 
         elif self.find_centroids_alg == "BC":
             self.clusters_centroids = betweenness_centrality.select_centroids(
-                self.data, Z
+                self.data, Z, self.n_clusters
             )
 
         elif self.find_centroids_alg == "PageRank":
-            self.clusters_centroids = pagerank.select_centroids(self.data, Z)
+            self.clusters_centroids = pagerank.select_centroids(
+                self.data, Z, self.n_clusters
+            )
 
         elif self.find_centroids_alg == "KMeans":
             self.clusters_centroids = kmeans.select_centroids(Z, self.n_clusters)
 
         elif self.find_centroids_alg == "FastGreedy":
-            self.clusters_centroids = fastgreedy.select_centroids(self.data, Z)
+            self.clusters_centroids = fastgreedy.select_centroids(
+                self.data, Z, self.n_clusters
+            )
 
         elif self.find_centroids_alg == "KCore":
-            self.clusters_centroids = kcore.select_centroids(self.data, Z)
+            self.clusters_centroids = kcore.select_centroids(
+                self.data, Z, self.n_clusters
+            )
 
         else:
             logging.error("FIND_CENTROIDS_ALG not known. Aborting...")

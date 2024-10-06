@@ -4,7 +4,7 @@ from torch_geometric.utils import to_networkx
 from utils import distance_calculator
 
 
-def select_centroids(data, Z, weights_name="weight", num_of_communities=5):
+def select_centroids(data, Z, weights_name, n_clusters):
     logging.info("Using WEIGHTED Fastgreedy to find the centroids...")
     G = nx.Graph(to_networkx(data, node_attrs=["x"]))
 
@@ -13,7 +13,7 @@ def select_centroids(data, Z, weights_name="weight", num_of_communities=5):
 
     # using Fast Greedy
     communities = nx.community.greedy_modularity_communities(
-        G, weight=weights_name, cutoff=num_of_communities, best_n=num_of_communities
+        G, weight=weights_name, cutoff=n_clusters, best_n=n_clusters
     )
 
     # For each community, find the centroid

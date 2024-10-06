@@ -16,7 +16,7 @@ def create_demo_graph(number_nodes, number_classes):
     data = RandomPartitionGraphDataset(
         root="",
         num_classes=number_classes,
-        num_nodes_per_class=(round(number_nodes/number_classes)),
+        num_nodes_per_class=(round(number_nodes / number_classes)),
         node_homophily_ratio=0.5,
         average_degree=12,
         num_channels=64,
@@ -25,10 +25,10 @@ def create_demo_graph(number_nodes, number_classes):
     return data[0]
 
 
-def get_cora_dataset():
+def get_planetoid_dataset(name="Cora"):
     """
     Get Cora Planetoid dataset.
     More info at https://pytorch-geometric.readthedocs.io/en/latest/modules/datasets.html
     """
-    logging.info("Geting Cora dataset...")
-    return Planetoid(root = "", name = 'Cora')[0]
+    logging.info("Getting Planetoid dataset. Name: " + name)
+    return Planetoid(root="", name=name)
