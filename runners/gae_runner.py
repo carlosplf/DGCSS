@@ -39,6 +39,7 @@ class GaeRunner:
         c_loss_gama,
         p_interval,
         centroids_plot_file,
+        clustering_plot_file,
         loss_log_file,
     ):
         self.epochs = epochs
@@ -55,6 +56,7 @@ class GaeRunner:
         self.c_loss_gama = c_loss_gama
         self.p_interval = p_interval
         self.centroids_plot_file = centroids_plot_file
+        self.clustering_plot_file = clustering_plot_file
         self.loss_log_file = loss_log_file
 
     def __print_values(self):
@@ -122,7 +124,9 @@ class GaeRunner:
                 if nmi > best_nmi:
                     best_nmi = nmi
 
-                clustering_filename = "plots/clustering_" + str(epoch) + ".png"
+                clustering_filename = (
+                    self.clustering_plot_file[:-4] + "_" + str(epoch) + ".png"
+                )
                 plot_functions.plot_clustering(
                     Z.detach().cpu().numpy(), r, clustering_filename
                 )

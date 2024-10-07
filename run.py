@@ -1,5 +1,7 @@
 import argparse
 import logging
+
+from sklearn.metrics import cluster
 from runners import gae_runner
 from utils.graph_creator import get_planetoid_dataset
 from utils.b_matrix import BMatrix
@@ -49,12 +51,18 @@ parser.add_argument(
     default=10,
 )
 parser.add_argument(
-    "-cf",
     "--centroids_plot_file",
     type=str,
     help="Define the PNG file name to \
-        save plot image.",
-    default="centroids_plot.png",
+        save the CENTROIDS plot image.",
+    default="plots/centroids_plot.png",
+)
+parser.add_argument(
+    "--clustering_plot_file",
+    type=str,
+    help="Define the PNG file name to \
+        save the CLUSTERING plot image.",
+    default="plots/clustering_plot.png",
 )
 
 
@@ -65,6 +73,7 @@ def run(
     c_loss_gama,
     p_interval,
     centroids_plot_file,
+    clustering_plot_file,
     dataset_name,
 ):
     dataset = get_planetoid_dataset(name=dataset_name)
@@ -93,6 +102,7 @@ def run(
         c_loss_gama=c_loss_gama,
         p_interval=p_interval,
         centroids_plot_file=centroids_plot_file,
+        clustering_plot_file=clustering_plot_file,
         loss_log_file=loss_log_file,
     )
 
@@ -117,6 +127,7 @@ if __name__ == "__main__":
     find_centroids_alg = args.find_centroids_alg
     loss_log_file = args.loss_log_file
     centroids_plot_file = args.centroids_plot_file
+    clustering_plot_file = args.clustering_plot_file
     dataset_name = args.dataset_name
 
     logging.info("Chosen dataset: " + str(dataset_name))
@@ -130,5 +141,6 @@ if __name__ == "__main__":
         c_loss_gama,
         p_interval,
         centroids_plot_file,
+        clustering_plot_file,
         dataset_name,
     )
