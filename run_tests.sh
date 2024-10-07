@@ -1,7 +1,8 @@
 #!/bin/bash
 
-FAIL=0
 NUMBER_OF_THREADS=6
+
+FAIL=0
 
 echo "Testing KMeans..."
 echo "Starting KMeans batch tests."
@@ -14,7 +15,11 @@ timestamp=$(date +%s)
 mkdir doc_tests/kmeans_$timestamp
 
 for i in $(seq 0 $NUMBER_OF_THREADS); do
-  python run.py --epochs ${epochs[i]} -pi ${pi[i]} --find_centroids_alg KMeans -log doc_tests/kmeans_$timestamp/kmeans_loss_$i.csv --centroids_plot_file doc_tests/kmeans_$timestamp/kmeans_centroids_$i -cl ${cl[i]} 2>doc_tests/kmeans_$timestamp/kmeans_test_$i.txt &
+  mkdir doc_tests/kmeans_$timestamp/run_$i
+  mkdir doc_tests/kmeans_$timestamp/run_$i/plots
+  python run.py --epochs ${epochs[i]} -pi ${pi[i]} --find_centroids_alg KMeans -log doc_tests/kmeans_$timestamp/run_$i/kmeans_loss_$i.csv \
+    --centroids_plot_file doc_tests/kmeans_$timestamp/run_$i/plots/kmeans_centroids_$i --clustering_plot_file doc_tests/kmeans_$timestamp/run_$i/plots/clustering_plot.png \
+    -cl ${cl[i]} 2>doc_tests/kmeans_$timestamp/run_$i/kmeans_test_$i.txt &
 done
 
 for job in $(jobs -p); do
