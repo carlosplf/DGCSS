@@ -1,20 +1,20 @@
 #!/bin/bash
 
-NUMBER_OF_THREADS=6
+NUMBER_OF_THREADS=8
 
 FAIL=0
 
 echo "Testing KMeans..."
 echo "Starting KMeans batch tests."
 
-epochs=(124 124 124 124 124 124)
-cl=(10 20 40 100 100 100)
-pi=(10 10 10 10 10 10)
+epochs=(124 124 124 124 124 124 124 124)
+cl=(10 20 40 100 100 100 40 100)
+pi=(10 10 10 10 10 10 5 5)
 
 timestamp=$(date +%s)
 mkdir doc_tests/kmeans_$timestamp
 
-for i in $(seq 0 $NUMBER_OF_THREADS); do
+for i in $(seq 1 $NUMBER_OF_THREADS); do
   mkdir doc_tests/kmeans_$timestamp/run_$i
   mkdir doc_tests/kmeans_$timestamp/run_$i/plots
   python run.py --epochs ${epochs[i]} -pi ${pi[i]} --find_centroids_alg KMeans -log doc_tests/kmeans_$timestamp/run_$i/kmeans_loss_$i.csv \
