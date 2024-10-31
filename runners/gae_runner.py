@@ -6,6 +6,7 @@ import logging
 from torch_geometric.nn import GAE
 from gat_model import gat_model
 from sklearn.metrics.cluster import normalized_mutual_info_score
+from sklearn.metrics.cluster import adjusted_rand_score
 from utils import clustering_loss
 from utils import csv_writer
 from utils import plot_functions
@@ -98,6 +99,7 @@ class GaeRunner:
         att_tuple = [[]]
         loss_log = []
         best_nmi = 0
+        best_ari = 0
         Z = None
 
         for epoch in range(self.epochs):
@@ -118,11 +120,16 @@ class GaeRunner:
                     r.append(np.argmax(line))
 
                 nmi = normalized_mutual_info_score(self.data.y.tolist(), r)
+                ari = adjusted_rand_score(self.data.y.tolist(), r)
 
                 logging.info("==> NMI: " + str(nmi))
+                logging.info("==> ARI: " + str(ari))
 
                 if nmi > best_nmi:
                     best_nmi = nmi
+                
+                if ari > best_ari:
+                    best_ari = ari
 
                 clustering_filename = (
                     self.clustering_plot_file[:-4] + "_" + str(epoch) + ".png"
@@ -132,6 +139,7 @@ class GaeRunner:
                 )
 
         logging.info("==> Best NMI score: " + str(best_nmi))
+        logging.info("==> Best ARII score: " + str(best_ari))
 
         csv_writer.write_loss(loss_log, self.loss_log_file)
 

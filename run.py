@@ -116,6 +116,12 @@ def run(
 if __name__ == "__main__":
     args = parser.parse_args()
 
+    logging.basicConfig(
+        format='%(asctime)s %(levelname)-8s %(message)s',
+        level=logging.INFO,
+        datefmt='%Y-%m-%d %H:%M:%S'
+    )
+
     if args.debug:
         logging.basicConfig(level=logging.DEBUG)
     else:
