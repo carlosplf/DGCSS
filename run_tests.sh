@@ -2,14 +2,14 @@
 
 NUMBER_OF_THREADS=6
 
-for alg in KMeans BC PageRank; do
+for alg in KMeans BC PageRank FastGreedy WFastGreedy KCore Random; do
   FAIL=0
 
   echo "Starting" $alg "batch tests."
 
-  epochs=(1 1 1 1 1 1)
-  cl=(20 40 100 40 100 100)
-  pi=(10 10 10 5 5 20)
+  epochs=(124 124 124 124 124 124)
+  cl=(20 40 100 40 100 200)
+  pi=(10 10 10 5 5 10)
 
   timestamp=$(date +%s)
   mkdir doc_tests/$alg\_$timestamp
