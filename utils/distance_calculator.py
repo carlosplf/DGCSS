@@ -8,9 +8,6 @@ def graph_manhattan_distances(X, consider_edges=False, mechanism="manhattan"):
     Calculate the manhattan distance from all N to N nodes in a graph.
 
     Args:
-
-        G (Networkx graph format): The graph to consider.
-
         X ([[]]): The nodes attributes values.
 
         consider_edges (bool): If True, distance between nodes that doesn't
