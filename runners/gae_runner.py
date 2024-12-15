@@ -3,6 +3,7 @@ import warnings
 import torch
 import numpy as np
 import logging
+import time
 from torch_geometric.nn import GAE
 from gat_model import gat_model
 from sklearn.metrics.cluster import normalized_mutual_info_score
@@ -18,6 +19,7 @@ from centroids_finder import (
     pagerank,
     kmeans,
     betweenness_centrality,
+    weighted_betweenness_centrality,
 )
 
 # Ignore torch FutureWarning messages
@@ -75,7 +77,7 @@ class GaeRunner:
 
         logging.info("Running on " + str(device))
 
-        in_channels, hidden_channels, out_channels = self.data.x.shape[1], 1024, 256
+        in_channels, hidden_channels, out_channels = self.data.x.shape[1], 2048, 512
 
         # 1 Hidden Layer GAT
         gae = GAE(gat_model.GATLayer(in_channels, hidden_channels, out_channels))
@@ -192,6 +194,7 @@ class GaeRunner:
         Args:
             Z: The matrix representing the nodes AFTER the Encoding process.
         """
+        start = time.time()
 
         if self.find_centroids_alg == "WFastGreedy":
             self.clusters_centroids = weighted_modularity.select_centroids(
@@ -203,6 +206,11 @@ class GaeRunner:
 
         elif self.find_centroids_alg == "BC":
             self.clusters_centroids = betweenness_centrality.select_centroids(
+                self.data, Z, self.n_clusters
+            )
+        
+        elif self.find_centroids_alg == "WBC":
+            self.clusters_centroids = weighted_betweenness_centrality.select_centroids(
                 self.data, Z, self.n_clusters
             )
 
@@ -227,6 +235,10 @@ class GaeRunner:
         else:
             logging.error("FIND_CENTROIDS_ALG not known. Aborting...")
             self.clusters_centroids = []
+        
+        done = time.time()
+        msg = str("Finished centroids op: " + str(done-start))
+        logging.info(msg)
 
         log_msg = "Centroids: " + str(self.clusters_centroids)
         logging.debug(log_msg)
