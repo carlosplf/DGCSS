@@ -1,15 +1,15 @@
 #!/bin/bash
 
-NUMBER_OF_THREADS=6
+NUMBER_OF_THREADS=4
 
-for alg in KMeans BC PageRank FastGreedy WFastGreedy KCore Random; do
+for alg in WBC; do
   FAIL=0
 
   echo "Starting" $alg "batch tests."
 
-  epochs=(124 124 124 124 124 124)
-  cl=(20 40 100 40 100 200)
-  pi=(10 10 10 5 5 10)
+  epochs=(24 24 24 24 24 24)
+  cl=(200 400 200 400 200 400)
+  pi=(5 5 10 10 5 10)
 
   timestamp=$(date +%s)
   mkdir doc_tests/$alg\_$timestamp

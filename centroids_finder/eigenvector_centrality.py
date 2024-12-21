@@ -13,13 +13,18 @@ def select_centroids(data, Z, n_clusters):
     distances = distance_calculator.graph_attr_distances(Z.detach().numpy(), mechanism="cosine")
 
     g_attrs = distance_calculator.define_weights(
-        G=G, distances=distances, weight_name="distancia", multiplier="inverse"
+        G=G, distances=distances, weight_name="distancia", multiplier="direct"
     )
 
     nx.set_edge_attributes(G, g_attrs)
+    
+    # Get a sample of weights, just to check.
+    edges_weights = list(nx.get_edge_attributes(G, "distancia").items())[:5]
+    msg = "Edge weights sample: " + str(edges_weights)
+    logging.info(msg)
    
-    # Weights are used to calculate weighted shortest paths, so they are interpreted as distances
-    ev_nodes = nx.betweenness_centrality(G, weight="distancia")
+    # In this measure the weight is interpreted as the connection strength.
+    ev_nodes = nx.eigenvector_centrality(G, max_iter=1000, weight="distancia")
 
     biggest = heapq.nlargest(n_clusters, ev_nodes.items(), key=lambda i: i[1])
     centroids = [i[0] for i in biggest]

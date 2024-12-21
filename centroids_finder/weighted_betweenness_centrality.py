@@ -17,6 +17,11 @@ def select_centroids(data, Z, n_clusters):
     )
 
     nx.set_edge_attributes(G, g_attrs)
+    
+    # Get a sample of weights, just to check.
+    edges_weights = list(nx.get_edge_attributes(G, "distancia").items())[:3]
+    msg = "Edge weights sample: " + str(edges_weights)
+    logging.info(msg)
    
     # Weights are used to calculate weighted shortest paths, so they are interpreted as distances
     bc_nodes = nx.betweenness_centrality(G, weight="distancia")

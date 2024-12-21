@@ -65,7 +65,7 @@ def define_weights(G, distances, weight_name, multiplier="direct", scale=1000):
     Return:
         Graph attributes as a dict. {(tuple, tuple): value}
     """
-    logging.info("Defining graph weights based on distances.")
+    logging.info(str("Defining graph weights based on distances. Correlation: " + multiplier))
 
     g_attrs = {}
 
@@ -75,20 +75,20 @@ def define_weights(G, distances, weight_name, multiplier="direct", scale=1000):
         for i in range(number_of_nodes):
             for j in range(number_of_nodes):
 
-                distance = distances[i][j]
+                distance = pow(distances[i][j], 4)
 
                 if distance <= 0.2:
                     weight = 1000000
 
                 else:
-                    weight = 1 / distance
+                    weight = (1 / distance) * 100
 
                 g_attrs[(i, j)] = {weight_name: weight}
 
     elif multiplier == "direct":
         for i in range(number_of_nodes):
             for j in range(number_of_nodes):
-                weight = int(pow(distances[i][j], 3) * scale)
+                weight = int(pow(distances[i][j], 4) * scale * 1000)
                 g_attrs[(i, j)] = {weight_name: weight}
 
     else:
