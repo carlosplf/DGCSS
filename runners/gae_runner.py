@@ -32,8 +32,8 @@ LR_CHANGE_EPOCHS = 100  # Interval to apply LR change
 UPDATE_CLUSTERS_STEP_SIZE = 0.01  # Step size for clusters update
 HIDDEN_LAYER_SIZE = 1024
 OUTPUT_LAYER_SIZE = 256
-RECHOSE_CENTROIDS = True
-NOT_IMPROVING_LIMIT = 3 # Max number of iterations that loss is not improving
+RECHOSE_CENTROIDS = True # If true, the algorithm will rechose the centroids when not improving loss
+NOT_IMPROVING_LIMIT = 10 # Max number of iterations that loss is not improving
 
 
 class GaeRunner:
@@ -122,7 +122,9 @@ class GaeRunner:
             # If is the first iteration, chose centroids;
             # If loss not improving, chose centroids again;
             if epoch == 0 or loss_not_improving_counter == NOT_IMPROVING_LIMIT:
-                chose_centroids = True
+                if RECHOSE_CENTROIDS:
+                    chose_centroids = True
+                loss_not_improving_counter == 0
             
             # Save past loss to compare
             past_loss = loss
@@ -133,6 +135,7 @@ class GaeRunner:
 
             chose_centroids = False
 
+            # Check if loss is lowering
             if loss >= past_loss:
                 loss_not_improving_counter += 1
             else:
