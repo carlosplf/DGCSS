@@ -20,15 +20,20 @@ from centroids_finder import (
     kmeans,
     betweenness_centrality,
     weighted_betweenness_centrality,
+    eigenvector_centrality
 )
 
 # Ignore torch FutureWarning messages
 warnings.simplefilter(action="ignore", category=FutureWarning)
 
-LEARNING_RATE = 0.001  # Learning rate
-LR_CHANGE_GAMMA = 0.5  # Multiplier for the Learning Rate
-LR_CHANGE_EPOCHS = 30  # Interval to apply LR change
+LEARNING_RATE = 0.0001  # Learning rate
+LR_CHANGE_GAMMA = 0.9  # Multiplier for the Learning Rate
+LR_CHANGE_EPOCHS = 100  # Interval to apply LR change
 UPDATE_CLUSTERS_STEP_SIZE = 0.01  # Step size for clusters update
+HIDDEN_LAYER_SIZE = 1024
+OUTPUT_LAYER_SIZE = 256
+RECHOSE_CENTROIDS = True
+NOT_IMPROVING_LIMIT = 3 # Max number of iterations that loss is not improving
 
 
 class GaeRunner:
@@ -70,6 +75,9 @@ class GaeRunner:
         logging.info("LR_CHANGE_EPOCHS: " + str(LR_CHANGE_EPOCHS))
 
     def run_training(self):
+        
+        # TODO: Refactor. Method is too big and complex.
+
         self.__print_values()
 
         # Check if CUDA is available and define the device to use.
@@ -77,7 +85,8 @@ class GaeRunner:
 
         logging.info("Running on " + str(device))
 
-        in_channels, hidden_channels, out_channels = self.data.x.shape[1], 2048, 512
+        in_channels, hidden_channels, out_channels = self.data.x.shape[1], \
+            HIDDEN_LAYER_SIZE, OUTPUT_LAYER_SIZE
 
         # 1 Hidden Layer GAT
         gae = GAE(gat_model.GATLayer(in_channels, hidden_channels, out_channels))
@@ -102,12 +111,33 @@ class GaeRunner:
         loss_log = []
         best_nmi = 0
         best_ari = 0
+        loss_not_improving_counter = 0
         Z = None
+        loss = 0
+        past_loss = 0
+        chose_centroids = False
 
         for epoch in range(self.epochs):
+
+            # If is the first iteration, chose centroids;
+            # If loss not improving, chose centroids again;
+            if epoch == 0 or loss_not_improving_counter == NOT_IMPROVING_LIMIT:
+                chose_centroids = True
+            
+            # Save past loss to compare
+            past_loss = loss
+            
             loss, Z, att_tuple, c_loss, gae_loss = self.__train_network(
-                gae, optimizer, epoch, scheduler
+                gae, optimizer, epoch, scheduler, chose_centroids
             )
+
+            chose_centroids = False
+
+            if loss >= past_loss:
+                loss_not_improving_counter += 1
+            else:
+                loss_not_improving_counter = 0
+
             logging.info("==> " + str(epoch) + " - Loss: " + str(loss))
             losses.append(loss)
             loss_log.append([epoch, loss, c_loss, gae_loss])
@@ -115,30 +145,29 @@ class GaeRunner:
             logging.debug("GAE Loss: " + str(gae_loss))
             logging.debug("Clustering Loss: " + str(10000 * c_loss))
 
-            if epoch % 2 == 0:
-                r = []
+            r = []
 
-                for line in self.Q:  # pyright: ignore
-                    r.append(np.argmax(line))
+            for line in self.Q:  # pyright: ignore
+                r.append(np.argmax(line))
 
-                nmi = normalized_mutual_info_score(self.data.y.tolist(), r)
-                ari = adjusted_rand_score(self.data.y.tolist(), r)
+            nmi = normalized_mutual_info_score(self.data.y.tolist(), r)
+            ari = adjusted_rand_score(self.data.y.tolist(), r)
 
-                logging.info("==> NMI: " + str(nmi))
-                logging.info("==> ARI: " + str(ari))
+            logging.info("==> NMI: " + str(nmi))
+            logging.info("==> ARI: " + str(ari))
 
-                if nmi > best_nmi:
-                    best_nmi = nmi
-                
-                if ari > best_ari:
-                    best_ari = ari
+            if nmi > best_nmi:
+                best_nmi = nmi
+            
+            if ari > best_ari:
+                best_ari = ari
 
-                clustering_filename = (
-                    self.clustering_plot_file[:-4] + "_" + str(epoch) + ".png"
-                )
-                plot_functions.plot_clustering(
-                    Z.detach().cpu().numpy(), r, clustering_filename
-                )
+            clustering_filename = (
+                self.clustering_plot_file[:-4] + "_" + str(epoch) + ".png"
+            )
+            plot_functions.plot_clustering(
+                Z.detach().cpu().numpy(), r, clustering_filename
+            )
 
         logging.info("==> Best NMI score: " + str(best_nmi))
         logging.info("==> Best ARII score: " + str(best_ari))
@@ -147,7 +176,7 @@ class GaeRunner:
 
         return self.data, att_tuple
 
-    def __train_network(self, gae, optimizer, epoch, scheduler):
+    def __train_network(self, gae, optimizer, epoch, scheduler, chose_centroids):
         gae.train()
         optimizer.zero_grad()
 
@@ -157,11 +186,15 @@ class GaeRunner:
             self.b_edge_index.edge_attr,
         )
 
-        if self.clusters_centroids is None:
+        if chose_centroids:
             self._find_centroids(Z)
             plot_functions.plot_centroids(
                 Z, self.clusters_centroids, self.centroids_plot_file
             )
+
+        if self.clusters_centroids is None:
+            logging.error("Centroids must be chosen first. Aborting!")
+            return None
 
         self.Q = clustering_loss.calculate_q(self.clusters_centroids, Z)
 
@@ -231,13 +264,18 @@ class GaeRunner:
             self.clusters_centroids = kcore.select_centroids(
                 self.data, Z, self.n_clusters
             )
+        
+        elif self.find_centroids_alg == "EigenV":
+            self.clusters_centroids = eigenvector_centrality.select_centroids(
+                self.data, Z, self.n_clusters
+            )
 
         else:
             logging.error("FIND_CENTROIDS_ALG not known. Aborting...")
             self.clusters_centroids = []
         
         done = time.time()
-        msg = str("Finished centroids op: " + str(done-start))
+        msg = str("Finished centroids finding operation: " + str(done-start))
         logging.info(msg)
 
         log_msg = "Centroids: " + str(self.clusters_centroids)

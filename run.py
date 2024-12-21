@@ -18,7 +18,9 @@ parser.add_argument(
     "--find_centroids_alg",
     type=str,
     help="Define the method to find \
-        centroids. Options: KMeans, FastGreedy.",
+        centroids. Options: KMeans, FastGreedy, WFastGreedy, \
+        Random, BC (Betweenness Centrality), WBC (Weighted Betweenness Centrality), \
+        PageRank, KCore, EigenV (Eigen Vector).",
     default="KMeans",
 )
 parser.add_argument(
