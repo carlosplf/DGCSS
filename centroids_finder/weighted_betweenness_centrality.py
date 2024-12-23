@@ -7,10 +7,20 @@ from utils import distance_calculator
 
 def select_centroids(data, Z, n_clusters):
     logging.info("Using Weighted Betweenness Centrality to find the centroids...")
-    G = nx.Graph(to_networkx(data))
+
+    # Graph structure is always based on the original Graph.
+    G = nx.Graph(to_networkx(data, node_attrs="x"))
   
     # Calculating diatances via COSINE SIMILARITY. 1 = equal, 0 = very different.
-    distances = distance_calculator.graph_attr_distances(Z.detach().numpy(), mechanism="cosine")
+    # Distances are calculated based on Attributes. It can be X or Z.
+
+    # Based on Graph X (attributes).
+    logging.info("Calculating distances based on X.")
+    distances = distance_calculator.graph_attr_distances(data.x, mechanism="cosine")
+
+    # Based on Encoder Z embeddings.
+    # logging.info("Calculating distances based on Z.")
+    # distances = distance_calculator.graph_attr_distances(Z.detach().numpy(), mechanism="cosine")
 
     g_attrs = distance_calculator.define_weights(
         G=G, distances=distances, weight_name="distancia", multiplier="inverse"
