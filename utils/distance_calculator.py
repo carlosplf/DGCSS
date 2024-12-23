@@ -75,9 +75,9 @@ def define_weights(G, distances, weight_name, multiplier="direct", scale=1000):
         for i in range(number_of_nodes):
             for j in range(number_of_nodes):
 
-                distance = pow(distances[i][j], 4)
+                distance = distances[i][j]
 
-                if distance <= 0.2:
+                if distance <= 0.0001:
                     weight = 1000000
 
                 else:

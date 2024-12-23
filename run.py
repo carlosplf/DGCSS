@@ -39,6 +39,14 @@ parser.add_argument(
     default="loss_log.csv",
 )
 parser.add_argument(
+    "-metrics",
+    "--metrics_log_file",
+    type=str,
+    help="Define the CSV file name to \
+        save metrics logs.",
+    default="metrics_log.csv",
+)
+parser.add_argument(
     "-cl",
     "--c_loss_gama",
     type=int,
@@ -72,6 +80,7 @@ def run(
     epochs,
     find_centroids_alg,
     loss_log_file,
+    metrics_log_file,
     c_loss_gama,
     p_interval,
     centroids_plot_file,
@@ -106,6 +115,7 @@ def run(
         centroids_plot_file=centroids_plot_file,
         clustering_plot_file=clustering_plot_file,
         loss_log_file=loss_log_file,
+        metrics_log_file=metrics_log_file
     )
 
     data, att_tuple = runner.run_training()
@@ -134,6 +144,7 @@ if __name__ == "__main__":
     p_interval = args.p_interval
     find_centroids_alg = args.find_centroids_alg
     loss_log_file = args.loss_log_file
+    metrics_log_file = args.metrics_log_file
     centroids_plot_file = args.centroids_plot_file
     clustering_plot_file = args.clustering_plot_file
     dataset_name = args.dataset_name
@@ -146,6 +157,7 @@ if __name__ == "__main__":
         epochs,
         find_centroids_alg,
         loss_log_file,
+        metrics_log_file,
         c_loss_gama,
         p_interval,
         centroids_plot_file,

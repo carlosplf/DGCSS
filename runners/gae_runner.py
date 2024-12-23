@@ -31,10 +31,10 @@ LEARNING_RATE = 0.0001  # Learning rate
 LR_CHANGE_GAMMA = 0.9  # Multiplier for the Learning Rate
 LR_CHANGE_EPOCHS = 100  # Interval to apply LR change
 UPDATE_CLUSTERS_STEP_SIZE = 0.001  # Step size for clusters update
-HIDDEN_LAYER_SIZE = 2048
-OUTPUT_LAYER_SIZE = 512
+HIDDEN_LAYER_SIZE = 1024
+OUTPUT_LAYER_SIZE = 256
 RECHOSE_CENTROIDS = True # If true, the algorithm will rechose the centroids when not improving loss
-NOT_IMPROVING_LIMIT = 8 # Max number of iterations that loss is not improving
+NOT_IMPROVING_LIMIT = 100 # Max number of iterations that loss is not improving
 
 
 class GaeRunner:
@@ -50,6 +50,7 @@ class GaeRunner:
         centroids_plot_file,
         clustering_plot_file,
         loss_log_file,
+        metrics_log_file,
     ):
         self.epochs = epochs
         self.data = data
@@ -67,6 +68,7 @@ class GaeRunner:
         self.centroids_plot_file = centroids_plot_file
         self.clustering_plot_file = clustering_plot_file
         self.loss_log_file = loss_log_file
+        self.metrics_log_file = metrics_log_file
 
     def __print_values(self):
         logging.info("C_LOSS_GAMMA: " + str(self.c_loss_gama))
@@ -108,6 +110,7 @@ class GaeRunner:
         )
 
         losses = []
+        metrics_log = []
         att_tuple = [[]]
         loss_log = []
         best_nmi = {'epoch': 0, 'value': 0}
@@ -148,48 +151,47 @@ class GaeRunner:
             loss_log.append([epoch, loss, c_loss, gae_loss])
 
             logging.debug("GAE Loss: " + str(gae_loss))
-            logging.debug("Clustering Loss: " + str(10000 * c_loss))
+            logging.debug("Clustering Loss (*10000): " + str(10000 * c_loss))
 
-            if epoch % 2 == 0:
+            r = []
 
-                r = []
+            for line in self.Q:  # pyright: ignore
+                r.append(np.argmax(line))
 
-                for line in self.Q:  # pyright: ignore
-                    r.append(np.argmax(line))
+            mod = modularity.calculate(self.data, r)
+            nmi = normalized_mutual_info_score(self.data.y.tolist(), r)
+            ari = adjusted_rand_score(self.data.y.tolist(), r)
+            metrics_log.append([epoch, mod, nmi, ari])
 
+            logging.info("=> Modularity: " + str(mod))
+            logging.info("=> NMI: " + str(nmi))
+            logging.info("=> ARI: " + str(ari))
 
-                mod = modularity.calculate(self.data, r)
-                nmi = normalized_mutual_info_score(self.data.y.tolist(), r)
-                ari = adjusted_rand_score(self.data.y.tolist(), r)
+            if nmi > best_nmi['value']:
+                best_nmi['value'] = nmi
+                best_nmi['epoch'] = epoch
+            
+            if ari > best_ari['value']:
+                best_ari['value'] = ari
+                best_ari['epoch'] = epoch
+            
+            if mod > best_mod['value']:
+                best_mod['value'] = mod
+                best_mod['epoch'] = epoch
 
-                logging.info("=> Modularity: " + str(mod))
-                logging.info("=> NMI: " + str(nmi))
-                logging.info("=> ARI: " + str(ari))
-
-                if nmi > best_nmi['value']:
-                    best_nmi['value'] = nmi
-                    best_nmi['epoch'] = epoch
-                
-                if ari > best_ari['value']:
-                    best_ari['value'] = ari
-                    best_ari['epoch'] = epoch
-                
-                if mod > best_mod['value']:
-                    best_mod['value'] = mod
-                    best_mod['epoch'] = epoch
-
-                clustering_filename = (
-                    self.clustering_plot_file[:-4] + "_" + str(epoch) + ".png"
-                )
-                plot_functions.plot_clustering(
-                    Z.detach().cpu().numpy(), r, clustering_filename
-                )
+            clustering_filename = (
+                self.clustering_plot_file[:-4] + "_" + str(epoch) + ".png"
+            )
+            plot_functions.plot_clustering(
+                Z.detach().cpu().numpy(), r, clustering_filename
+            )
 
         logging.info("=> Best Modularity score: " + str(best_mod['value']) + " at epoch " + str(best_mod['epoch']))
         logging.info("=> Best NMI score: " + str(best_nmi['value']) + " at epoch " + str(best_nmi['epoch']))
         logging.info("=> Best ARI score: " + str(best_ari['value']) + " at epoch " + str(best_ari['epoch']))
 
         csv_writer.write_loss(loss_log, self.loss_log_file)
+        csv_writer.write_metrics(metrics_log, self.metrics_log_file)
 
         return self.data, att_tuple
 

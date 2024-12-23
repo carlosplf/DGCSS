@@ -11,7 +11,7 @@ def calculate(data, labels):
         data (dataset): Data structure to build the Graph in Networkx format.
         labels (list): List with the labels for each node. 
     """
-    logging.info("Calculating Modularity...")
+    logging.debug("Calculating Modularity...")
     G = nx.Graph(to_networkx(data))
     
     unique_labels = set(labels)
