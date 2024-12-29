@@ -2,6 +2,7 @@ import logging
 
 from torch_geometric.datasets import RandomPartitionGraphDataset
 from torch_geometric.datasets import Planetoid
+from torch_geometric.datasets import Twitch
 
 
 def create_demo_graph(number_nodes, number_classes):
@@ -25,6 +26,15 @@ def create_demo_graph(number_nodes, number_classes):
     return data[0]
 
 
+def get_dataset(name="Cora", ds_type="Planetoid"):
+    if ds_type == "Planetoid":
+        return get_planetoid_dataset(name=name)
+
+    if ds_type == "Twitch":
+        dataset_name = "DE"
+        return get_twitch_dataset(name=dataset_name)
+
+
 def get_planetoid_dataset(name="Cora"):
     """
     Get Cora Planetoid dataset.
@@ -32,3 +42,11 @@ def get_planetoid_dataset(name="Cora"):
     """
     logging.info("Getting Planetoid dataset. Name: " + name)
     return Planetoid(root="", name=name)
+
+
+def get_twitch_dataset(name="DE"):
+    """
+    Get Torch Twitch dataset.
+    """
+    logging.info("Getting Twitch dataset. Name: " + name)
+    return Twitch(root="", name=name)
