@@ -1,5 +1,4 @@
 import logging
-import networkx as nx
 from sklearn.metrics.pairwise import manhattan_distances
 from sklearn.metrics.pairwise import cosine_similarity
 
@@ -29,7 +28,7 @@ def graph_attr_distances(X, consider_edges=False, mechanism="manhattan"):
     logging.info("Calculating distances between nodes.")
     logging.info("Number of nodes: " + str(number_of_nodes))
     logging.info("Distance mechanism: " + mechanism)
-    
+
     """
     According to the Networkx docs:
     'This algorithm is not guaranteed to be correct if edge weights
@@ -40,10 +39,10 @@ def graph_attr_distances(X, consider_edges=False, mechanism="manhattan"):
 
     if mechanism == "manhattan":
         distances = manhattan_distances(X, X)
-  
+
     elif mechanism == "cosine":
         distances = cosine_similarity(X)
-    
+
     else:
         logging.error("Distance mechanism not known. Aborting...")
         return None
@@ -65,7 +64,9 @@ def define_weights(G, distances, weight_name, multiplier="direct", scale=1000):
     Return:
         Graph attributes as a dict. {(tuple, tuple): value}
     """
-    logging.info(str("Defining graph weights based on distances. Correlation: " + multiplier))
+    logging.info(
+        str("Defining graph weights based on distances. Correlation: " + multiplier)
+    )
 
     g_attrs = {}
 
@@ -74,7 +75,6 @@ def define_weights(G, distances, weight_name, multiplier="direct", scale=1000):
     if multiplier == "inverse":
         for i in range(number_of_nodes):
             for j in range(number_of_nodes):
-
                 distance = distances[i][j]
 
                 if distance <= 0.0001:

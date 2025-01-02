@@ -1,4 +1,3 @@
-from pickle import decode_long
 import warnings
 import torch
 import numpy as np
@@ -27,12 +26,12 @@ from centroids_finder import (
 # Ignore torch FutureWarning messages
 warnings.simplefilter(action="ignore", category=FutureWarning)
 
-LEARNING_RATE = 0.0001  # Learning rate
-LR_CHANGE_GAMMA = 0.9  # Multiplier for the Learning Rate
-LR_CHANGE_EPOCHS = 100  # Interval to apply LR change
+LEARNING_RATE = 0.001  # Learning rate
+LR_CHANGE_GAMMA = 0.1  # Multiplier for the Learning Rate
+LR_CHANGE_EPOCHS = 30  # Interval to apply LR change
 UPDATE_CLUSTERS_STEP_SIZE = 0.01  # Step size for clusters update
-HIDDEN_LAYER_SIZE = 2048
-OUTPUT_LAYER_SIZE = 512
+HIDDEN_LAYER_SIZE = 512
+OUTPUT_LAYER_SIZE = 128
 RECHOSE_CENTROIDS = (
     True  # If true, the algorithm will rechose the centroids when not improving loss
 )
@@ -132,7 +131,7 @@ class GaeRunner:
             if epoch == 0 or loss_not_improving_counter == NOT_IMPROVING_LIMIT:
                 if RECHOSE_CENTROIDS:
                     chose_centroids = True
-                loss_not_improving_counter == 0
+                loss_not_improving_counter = 0
 
             # Save past loss to compare
             past_loss = loss
