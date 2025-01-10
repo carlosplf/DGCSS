@@ -71,24 +71,29 @@ def define_weights(G, distances, weight_name, multiplier="direct", scale=1000):
 
     number_of_nodes = len(distances)
 
+    # TODO: Need to review this.
     if multiplier == "inverse":
         for i in range(number_of_nodes):
             for j in range(number_of_nodes):
+            
+                # If the edge doesn't exists, we don´t need to calculate distance.
+                if not G.has_edge(i, j):
+                    pass
 
                 distance = distances[i][j]
 
                 if distance <= 0.0001:
-                    weight = 1000000
+                    weight = 10000
 
                 else:
-                    weight = (1 / distance) * 100
+                    weight = (1 / distance)
 
                 g_attrs[(i, j)] = {weight_name: weight}
 
     elif multiplier == "direct":
         for i in range(number_of_nodes):
             for j in range(number_of_nodes):
-                weight = int(pow(distances[i][j], 4) * scale * 1000)
+                weight = int(pow(distances[i][j], 4) * scale * 100)
                 g_attrs[(i, j)] = {weight_name: weight}
 
     else:
