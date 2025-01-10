@@ -3,9 +3,12 @@ import logging
 
 from sklearn.metrics import cluster
 from runners import gae_runner
-from utils.graph_creator import get_planetoid_dataset
+from utils.graph_creator import get_dataset
 from utils.b_matrix import BMatrix
 
+
+PLANETOID_DATASETS = ["Cora", "Citeseer", "Pubmed"]
+TWITCH_DATASETS = ["Twitch"]
 
 parser = argparse.ArgumentParser()
 
@@ -87,7 +90,19 @@ def run(
     clustering_plot_file,
     dataset_name,
 ):
-    dataset = get_planetoid_dataset(name=dataset_name)
+    ds_type = None
+
+    if dataset_name in PLANETOID_DATASETS:
+        ds_type = "Planetoid"
+
+    if dataset_name in TWITCH_DATASETS:
+        ds_type = "Twitch"
+
+    if not ds_type:
+        logging.error("Dataset not known. Aborting...")
+        return None
+
+    dataset = get_dataset(name=dataset_name, ds_type=ds_type)
 
     data = dataset[0]
     num_classes = dataset.num_classes
@@ -115,7 +130,7 @@ def run(
         centroids_plot_file=centroids_plot_file,
         clustering_plot_file=clustering_plot_file,
         loss_log_file=loss_log_file,
-        metrics_log_file=metrics_log_file
+        metrics_log_file=metrics_log_file,
     )
 
     data, att_tuple = runner.run_training()
@@ -129,9 +144,9 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     logging.basicConfig(
-        format='%(asctime)s %(levelname)-8s %(message)s',
+        format="%(asctime)s %(levelname)-8s %(message)s",
         level=logging.INFO,
-        datefmt='%Y-%m-%d %H:%M:%S'
+        datefmt="%Y-%m-%d %H:%M:%S",
     )
 
     if args.debug:

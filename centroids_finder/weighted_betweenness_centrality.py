@@ -10,7 +10,7 @@ def select_centroids(data, Z, n_clusters):
 
     # Graph structure is always based on the original Graph.
     G = nx.Graph(to_networkx(data, node_attrs="x"))
-  
+
     # Calculating diatances via COSINE SIMILARITY. 1 = equal, 0 = very different.
     # Distances are calculated based on Attributes. It can be X or Z.
 
@@ -23,16 +23,16 @@ def select_centroids(data, Z, n_clusters):
     # distances = distance_calculator.graph_attr_distances(Z.detach().numpy(), mechanism="cosine")
 
     g_attrs = distance_calculator.define_weights(
-        G=G, distances=distances, weight_name="distancia", multiplier="inverse"
+        distances=distances, weight_name="distancia", multiplier="inverse"
     )
 
     nx.set_edge_attributes(G, g_attrs)
-    
+
     # Get a sample of weights, just to check.
     edges_weights = list(nx.get_edge_attributes(G, "distancia").items())[:3]
     msg = "Edge weights sample: " + str(edges_weights)
     logging.info(msg)
-   
+
     # Weights are used to calculate weighted shortest paths, so they are interpreted as distances
     bc_nodes = nx.betweenness_centrality(G, weight="distancia")
 
