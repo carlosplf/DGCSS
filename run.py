@@ -20,7 +20,7 @@ parser.add_argument(
     help="Define the method to find \
         centroids. Options: KMeans, FastGreedy, WFastGreedy, \
         Random, BC (Betweenness Centrality), WBC (Weighted Betweenness Centrality), \
-        PageRank, KCore, EigenV (Eigen Vector).",
+        PageRank, KCore, EigenV (Eigen Vector), CC (Closeness Centrality)",
     default="KMeans",
 )
 parser.add_argument(

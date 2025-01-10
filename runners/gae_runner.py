@@ -21,18 +21,19 @@ from centroids_finder import (
     kmeans,
     betweenness_centrality,
     weighted_betweenness_centrality,
-    eigenvector_centrality
+    eigenvector_centrality,
+    closeness_centrality
 )
 
 # Ignore torch FutureWarning messages
 warnings.simplefilter(action="ignore", category=FutureWarning)
 
 LEARNING_RATE = 0.0001  # Learning rate
-LR_CHANGE_GAMMA = 0.9  # Multiplier for the Learning Rate
-LR_CHANGE_EPOCHS = 100  # Interval to apply LR change
+LR_CHANGE_GAMMA = 0.5  # Multiplier for the Learning Rate
+LR_CHANGE_EPOCHS = 30  # Interval to apply LR change
 UPDATE_CLUSTERS_STEP_SIZE = 0.001  # Step size for clusters update
-HIDDEN_LAYER_SIZE = 1024
-OUTPUT_LAYER_SIZE = 256
+HIDDEN_LAYER_SIZE = 4096
+OUTPUT_LAYER_SIZE = 512
 RECHOSE_CENTROIDS = True # If true, the algorithm will rechose the centroids when not improving loss
 NOT_IMPROVING_LIMIT = 100 # Max number of iterations that loss is not improving
 
@@ -289,6 +290,16 @@ class GaeRunner:
                 self.data, Z, self.n_clusters
             )
 
+        elif self.find_centroids_alg == "CC":
+            self.clusters_centroids = closeness_centrality.select_centroids(
+                self.data, Z, self.n_clusters
+            )
+        
+        elif self.find_centroids_alg == "WCC":
+            self.clusters_centroids = closeness_centrality.select_centroids(
+                self.data, Z, self.n_clusters, weighted=True
+            )
+        
         else:
             logging.error("FIND_CENTROIDS_ALG not known. Aborting...")
             self.clusters_centroids = []
