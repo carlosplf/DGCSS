@@ -4,39 +4,37 @@
 
 ## O projeto
 
-Através de uma metodologia hipotético-dedutiva, este trabalho tem como objetivo compreender melhor a dependência de agrupadores externos quando GNNs são utilizadas para tarefas de detecção de comunidades, e também propor alternativas a ponto de remover completamente a dependência de um agrupador externo na utilização de GNNs para este tipo de tarefa.
+Through a hypothetical-deductive methodology, this work aims to better understand the dependence on external clustering methods when Graph Neural Networks (GNNs) are used for community detection tasks. It also proposes alternatives to completely remove the reliance on an external clustering method in the use of GNNs for this type of task.
 
-Este projeto implementa o algoritmo proposto em [Deep neighbor-aware embedding for node clustering in attributed graphs](https://www.sciencedirect.com/science/article/abs/pii/S0031320321004118), compara os resultados objetidos com os que foram apresentados no artigo original e propõe algumas variações no algoritmo.
+This project implements the algorithm proposed in [Deep neighbor-aware embedding for node clustering in attributed graphs](https://www.sciencedirect.com/science/article/abs/pii/S0031320321004118), compares the obtained results with those presented in the original article, and suggests some variations to the algorithm.
 
-![Estrutura do algoritmo proposto em "Deep neighbor-aware embedding for node clustering in attributed graphs"](./img/deep-neighbor-model-img.png)
+![Structure of the algorithm proposed in "Deep neighbor-aware embedding for node clustering in attributed graphs"](./img/deep-neighbor-model-img.png)
 
-### Testes e variações:
+### Tests and Variations:
 
-Até o presente momento, as sugestões de testes e variações podem incluir:
+To date, the suggested tests and variations may include:
 
-- Novos mecanismos para a detecção de centróides;
-- Novas funções de Loss e variação de pesos;
-- Variações na estrutura e parâmetros da rede;
-- Novas funções para detecção das classes;
-- Testes paramétricos variados;
+- New mechanisms for centroid detection;
+- New loss functions and weight variations;
+- Variations in the network structure and parameters;
+- New functions for class detection;
+- Various parametric tests;
 
-Todos os testes e variações serão implementadas e documentadas neste repositório.
+### Centroids via Community Detection
 
-### Centroides por detecção de comunidades
+One of the approaches chosen for testing and comparison is community detection using algorithms like Fast Greedy, followed by mapping the centroids based on connectivity degree. This replaces KMeans as the initial centroid detection mechanism. Test results will be shared through this repository.
 
-Uma das abordagens escolhidas para teste e comparação é a detecção de comunidades via algoritmos como Fast Greedy, e posteriormente o mapeamento dos centroids via grau de conectividade. Isso substitui o KMeans como mecanismos inicial de detecção dos centroides. Os resultados dos testes devem ser compartilhados via este repositório.
+### Centroids via Seed Selection
 
-### Centroides por seleção de sementes
+Another mechanism to be evaluated in this project is the Seed Expansion method for detecting initial centroids. This approach could eliminate the need for community detection. We believe this method may enhance the algorithm's overall efficiency, but we do not yet have results to confirm the quality of this approach.
 
-Outro mecanismo a ser avaliado por este projeto é o mecanismo de Seed Expansion para a detecção dos centroides iniciais. Dessa forma, não seria necessária a detecção de comunidades. Acreditamos que esta abordagem pode trazer um ganho de eficiência para o algoritmo como um todo, mas não temos ainda resultados para afirmar a qualidade de tal abordagem.
+### Seed Selection Based on Node Attributes
 
-### Seleção de sementes com base em atributos dos nós
+An approach to be implemented and tested involves seed selection based on node attributes. This could involve assigning distances between nodes based on attribute similarity, for example. A possible method is implementing a weighted K-Core that considers edge weights in subgraph selection. Other algorithms will be implemented and evaluated.
 
-Uma abordagem a ser implementada e testada por este projeto, é a implementação da seleção de sementes com base nos atributos dos nós. Isso pode ocorrer atribuindo a distância entre nós com base na semelhança entre atributos do nós, por exemplo. Uma possível abordagem, é a implementação de um K-Core ponderado, que considera o peso das arestas na seleção dos subgrafos. Outros algoritmos devem ser implementados e avaliados.
+## How to Run
 
-## Como executar
-
-Crie um ambiente virtual Python e instale as dependências necessárias:
+Create a Python virtual environment and install the necessary dependencies:
 
 ```
 python3 -m venv ./env
@@ -44,18 +42,25 @@ source ./env/bin/activate
 pip install -r requirements.txt
 ```
 
-O arquivo `run.py` executa o algoritmo e possui alguns parâmetros que podem ajustar o treinamento da rede. Para mais informações, execute: `python run.py --help`.
+The `run.py` file executes the algorithm and has parameters that can adjust the network training. For more information, run:
 
-### Seletores de centróides implementados:
+### Implemented Centroid Selectors::
 
-Até o presente momento, este projeto conta com a implementação dos seguintes algoritmos para a seleção de centróides:
+Currently, this project includes the implementation of the following algorithms for centroid selection:
 
 - KMeans;
-- Fastgreedy;
-- K-core (via _k-score_);
+- Fast Greedy;
+- K-core;
 - PageRank;
+- Random;
+- Betweenness Centrality;
+- Weighted Betweenness Centrality;
+- Eigen Vector;
+- Closeness Centrality;
+- Weighted Closeness Centrality;
 
-## Autores:
+
+## Authors:
 
 Alan Demétrius Baria Valejo
 
