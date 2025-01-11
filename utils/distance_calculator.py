@@ -50,11 +50,12 @@ def graph_attr_distances(X, consider_edges=False, mechanism="manhattan"):
     return distances
 
 
-def define_weights(distances, weight_name, multiplier="direct", scale=1000):
+def define_weights(G, distances, weight_name, multiplier="direct", scale=1000):
     """
     Define the weights in the Graph based on the distance between nodes.
     The weight is defined by 1/<distance>.
     Args:
+        G: Networkx Graph.
         distances ([[]]): Matrix NxN with all the distances between nodes.
         weight_name (str): Name of the field that will be stored in the Graph.
         multiplier (str): "inverse" or "direct". Determine the correlation
@@ -82,7 +83,7 @@ def define_weights(distances, weight_name, multiplier="direct", scale=1000):
 
                 distance = distances[i][j]
 
-                if distance <= 0.0001:
+                if distance <= 0.001:
                     weight = 10000
 
                 else:
