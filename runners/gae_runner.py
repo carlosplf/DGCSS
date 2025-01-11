@@ -23,16 +23,17 @@ from centroids_finder import (
     eigenvector_centrality,
     closeness_centrality
 )
+from centroids_finder import arguments_map
+
 
 # Ignore torch FutureWarning messages
 warnings.simplefilter(action="ignore", category=FutureWarning)
 
+
 LEARNING_RATE = 0.0001  # Learning rate
 LR_CHANGE_GAMMA = 0.5  # Multiplier for the Learning Rate
-LR_CHANGE_EPOCHS = 30  # Interval to apply LR change
+LR_CHANGE_EPOCHS = 20  # Interval to apply LR change
 UPDATE_CLUSTERS_STEP_SIZE = 0.001  # Step size for clusters update
-HIDDEN_LAYER_SIZE = 4096
-OUTPUT_LAYER_SIZE = 512
 RECHOSE_CENTROIDS = True # If true, the algorithm will rechose the centroids when not improving loss
 NOT_IMPROVING_LIMIT = 100 # Max number of iterations that loss is not improving
 
@@ -51,6 +52,8 @@ class GaeRunner:
         clustering_plot_file,
         loss_log_file,
         metrics_log_file,
+        hidden_layer,
+        output_layer
     ):
         self.epochs = epochs
         self.data = data
@@ -69,6 +72,8 @@ class GaeRunner:
         self.clustering_plot_file = clustering_plot_file
         self.loss_log_file = loss_log_file
         self.metrics_log_file = metrics_log_file
+        self.hidden_layer_size = hidden_layer
+        self.output_layer_size = output_layer
 
     def __print_values(self):
         logging.info("C_LOSS_GAMMA: " + str(self.c_loss_gama))
@@ -89,8 +94,8 @@ class GaeRunner:
 
         in_channels, hidden_channels, out_channels = (
             self.data.x.shape[1],
-            HIDDEN_LAYER_SIZE,
-            OUTPUT_LAYER_SIZE,
+            self.hidden_layer_size,
+            self.output_layer_size
         )
 
         # 1 Hidden Layer GAT
@@ -264,60 +269,13 @@ class GaeRunner:
         """
         start = time.time()
 
-        if self.find_centroids_alg == "WFastGreedy":
-            self.clusters_centroids = weighted_modularity.select_centroids(
-                self.data, Z, "weight", self.n_clusters
-            )
-
-        elif self.find_centroids_alg == "Random":
-            self.clusters_centroids = random_seeds.select_centroids(Z, self.n_clusters)
-
-        elif self.find_centroids_alg == "BC":
-            self.clusters_centroids = betweenness_centrality.select_centroids(
-                self.data, Z, self.n_clusters
-            )
-
-        elif self.find_centroids_alg == "WBC":
-            self.clusters_centroids = weighted_betweenness_centrality.select_centroids(
-                self.data, Z, self.n_clusters
-            )
-
-        elif self.find_centroids_alg == "PageRank":
-            self.clusters_centroids = pagerank.select_centroids(
-                self.data, Z, self.n_clusters
-            )
-
-        elif self.find_centroids_alg == "KMeans":
-            self.clusters_centroids = kmeans.select_centroids(Z, self.n_clusters)
-
-        elif self.find_centroids_alg == "FastGreedy":
-            self.clusters_centroids = fastgreedy.select_centroids(
-                self.data, Z, self.n_clusters
-            )
-
-        elif self.find_centroids_alg == "KCore":
-            self.clusters_centroids = kcore.select_centroids(
-                self.data, Z, self.n_clusters
-            )
-
-        elif self.find_centroids_alg == "EigenV":
-            self.clusters_centroids = eigenvector_centrality.select_centroids(
-                self.data, Z, self.n_clusters
-            )
-
-        elif self.find_centroids_alg == "CC":
-            self.clusters_centroids = closeness_centrality.select_centroids(
-                self.data, Z, self.n_clusters
-            )
-        
-        elif self.find_centroids_alg == "WCC":
-            self.clusters_centroids = closeness_centrality.select_centroids(
-                self.data, Z, self.n_clusters, weighted=True
-            )
-        
-        else:
+        if self.find_centroids_alg not in arguments_map.map:
             logging.error("FIND_CENTROIDS_ALG not known. Aborting...")
-            self.clusters_centroids = []
+            return
+
+        self.clusters_centroids = arguments_map.map[self.find_centroids_alg].select_centroids(
+            data=self.data, Z=Z, n_clusters=self.n_clusters
+        )
 
         done = time.time()
         msg = str("Finished centroids finding operation: " + str(done - start))

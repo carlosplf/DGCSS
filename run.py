@@ -64,6 +64,20 @@ parser.add_argument(
     default=10,
 )
 parser.add_argument(
+    "-hl",
+    "--hidden_layer",
+    type=int,
+    help="Define the Hidden Layer size.",
+    default=1024,
+)
+parser.add_argument(
+    "-ol",
+    "--output_layer",
+    type=int,
+    help="Define the Output Layer size.",
+    default=256,
+)
+parser.add_argument(
     "--centroids_plot_file",
     type=str,
     help="Define the PNG file name to \
@@ -89,6 +103,8 @@ def run(
     centroids_plot_file,
     clustering_plot_file,
     dataset_name,
+    hidden_layer,
+    output_layer
 ):
     ds_type = None
 
@@ -131,6 +147,8 @@ def run(
         clustering_plot_file=clustering_plot_file,
         loss_log_file=loss_log_file,
         metrics_log_file=metrics_log_file,
+        hidden_layer=hidden_layer,
+        output_layer=output_layer
     )
 
     data, att_tuple = runner.run_training()
@@ -163,6 +181,8 @@ if __name__ == "__main__":
     centroids_plot_file = args.centroids_plot_file
     clustering_plot_file = args.clustering_plot_file
     dataset_name = args.dataset_name
+    hidden_layer = args.hidden_layer
+    output_layer = args.output_layer
 
     logging.info("Chosen dataset: " + str(dataset_name))
 
@@ -178,4 +198,6 @@ if __name__ == "__main__":
         centroids_plot_file,
         clustering_plot_file,
         dataset_name,
+        hidden_layer,
+        output_layer
     )
