@@ -5,7 +5,7 @@ from torch_geometric.utils import to_networkx
 from utils import distance_calculator
 
 
-def select_centroids(data, Z, n_clusters):
+def select_centroids(data=None, Z=None, n_clusters=0):
     logging.info("Using Eigen Vector Centrality to find the centroids...")
     G = nx.Graph(to_networkx(data))
   

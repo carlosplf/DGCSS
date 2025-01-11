@@ -4,7 +4,7 @@ import networkx as nx
 from torch_geometric.utils import to_networkx
 
 
-def select_centroids(data, Z, n_clusters):
+def select_centroids(data=None, Z=None, n_clusters=0):
     logging.info("Using PageRank to find the centroids...")
     G = nx.Graph(to_networkx(data, node_attrs=["x"]))
 
