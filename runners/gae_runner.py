@@ -1,14 +1,16 @@
-from pickle import decode_long
 import warnings
 import torch
 import numpy as np
 import logging
+import time
 from torch_geometric.nn import GAE
 from gat_model import gat_model
 from sklearn.metrics.cluster import normalized_mutual_info_score
+from sklearn.metrics.cluster import adjusted_rand_score
 from utils import clustering_loss
 from utils import csv_writer
 from utils import plot_functions
+from metrics import modularity
 from centroids_finder import (
     random_seeds,
     fastgreedy,
@@ -17,15 +19,23 @@ from centroids_finder import (
     pagerank,
     kmeans,
     betweenness_centrality,
+    weighted_betweenness_centrality,
+    eigenvector_centrality,
+    closeness_centrality
 )
+from centroids_finder import arguments_map
+
 
 # Ignore torch FutureWarning messages
 warnings.simplefilter(action="ignore", category=FutureWarning)
 
-LEARNING_RATE = 0.001  # Learning rate
+
+LEARNING_RATE = 0.0001  # Learning rate
 LR_CHANGE_GAMMA = 0.5  # Multiplier for the Learning Rate
-LR_CHANGE_EPOCHS = 30  # Interval to apply LR change
-UPDATE_CLUSTERS_STEP_SIZE = 0.01  # Step size for clusters update
+LR_CHANGE_EPOCHS = 20  # Interval to apply LR change
+UPDATE_CLUSTERS_STEP_SIZE = 0.001  # Step size for clusters update
+RECHOSE_CENTROIDS = True # If true, the algorithm will rechose the centroids when not improving loss
+NOT_IMPROVING_LIMIT = 100 # Max number of iterations that loss is not improving
 
 
 class GaeRunner:
@@ -39,7 +49,11 @@ class GaeRunner:
         c_loss_gama,
         p_interval,
         centroids_plot_file,
+        clustering_plot_file,
         loss_log_file,
+        metrics_log_file,
+        hidden_layer,
+        output_layer
     ):
         self.epochs = epochs
         self.data = data
@@ -55,7 +69,11 @@ class GaeRunner:
         self.c_loss_gama = c_loss_gama
         self.p_interval = p_interval
         self.centroids_plot_file = centroids_plot_file
+        self.clustering_plot_file = clustering_plot_file
         self.loss_log_file = loss_log_file
+        self.metrics_log_file = metrics_log_file
+        self.hidden_layer_size = hidden_layer
+        self.output_layer_size = output_layer
 
     def __print_values(self):
         logging.info("C_LOSS_GAMMA: " + str(self.c_loss_gama))
@@ -65,6 +83,8 @@ class GaeRunner:
         logging.info("LR_CHANGE_EPOCHS: " + str(LR_CHANGE_EPOCHS))
 
     def run_training(self):
+        # TODO: Refactor. Method is too big and complex.
+
         self.__print_values()
 
         # Check if CUDA is available and define the device to use.
@@ -72,7 +92,11 @@ class GaeRunner:
 
         logging.info("Running on " + str(device))
 
-        in_channels, hidden_channels, out_channels = self.data.x.shape[1], 1024, 256
+        in_channels, hidden_channels, out_channels = (
+            self.data.x.shape[1],
+            self.hidden_layer_size,
+            self.output_layer_size
+        )
 
         # 1 Hidden Layer GAT
         gae = GAE(gat_model.GATLayer(in_channels, hidden_channels, out_channels))
@@ -93,47 +117,106 @@ class GaeRunner:
         )
 
         losses = []
+        metrics_log = []
         att_tuple = [[]]
         loss_log = []
-        best_nmi = 0
+        best_nmi = {"epoch": 0, "value": 0.0}
+        best_ari = {"epoch": 0, "value": 0.0}
+        best_mod = {"epoch": 0, "value": 0.0}
+        loss_not_improving_counter = 0
         Z = None
+        loss = 0
+        past_loss = 0
+        chose_centroids = False
 
         for epoch in range(self.epochs):
+            # If is the first iteration, chose centroids;
+            # If loss not improving, chose centroids again;
+            if epoch == 0 or loss_not_improving_counter == NOT_IMPROVING_LIMIT:
+                if RECHOSE_CENTROIDS:
+                    chose_centroids = True
+                loss_not_improving_counter = 0
+
+            # Save past loss to compare
+            past_loss = loss
+
             loss, Z, att_tuple, c_loss, gae_loss = self.__train_network(
-                gae, optimizer, epoch, scheduler
+                gae, optimizer, epoch, scheduler, chose_centroids
             )
-            logging.info("==> " + str(epoch) + " - Loss: " + str(loss))
+
+            chose_centroids = False
+
+            # Check if loss is lowering
+            if loss >= past_loss:
+                loss_not_improving_counter += 1
+            else:
+                loss_not_improving_counter = 0
+
+            logging.info("=> " + str(epoch) + " - Loss: " + str(loss))
             losses.append(loss)
             loss_log.append([epoch, loss, c_loss, gae_loss])
 
             logging.debug("GAE Loss: " + str(gae_loss))
-            logging.debug("Clustering Loss: " + str(10000 * c_loss))
+            logging.debug("Clustering Loss (*10000): " + str(10000 * c_loss))
 
-            if epoch % 2 == 0:
-                r = []
+            r = []
 
-                for line in self.Q:  # pyright: ignore
-                    r.append(np.argmax(line))
+            for line in self.Q:  # pyright: ignore
+                r.append(np.argmax(line))
 
-                nmi = normalized_mutual_info_score(self.data.y.tolist(), r)
+            mod = modularity.calculate(self.data, r)
+            nmi = normalized_mutual_info_score(self.data.y.tolist(), r)
+            ari = adjusted_rand_score(self.data.y.tolist(), r)
+            metrics_log.append([epoch, mod, nmi, ari])
 
-                logging.info("==> NMI: " + str(nmi))
+            logging.info("=> Modularity: " + str(mod))
+            logging.info("=> NMI: " + str(nmi))
+            logging.info("=> ARI: " + str(ari))
 
-                if nmi > best_nmi:
-                    best_nmi = nmi
+            if nmi > best_nmi["value"]:
+                best_nmi["value"] = nmi
+                best_nmi["epoch"] = epoch
 
-                clustering_filename = "plots/clustering_" + str(epoch) + ".png"
-                plot_functions.plot_clustering(
-                    Z.detach().cpu().numpy(), r, clustering_filename
-                )
+            if ari > best_ari["value"]:
+                best_ari["value"] = ari
+                best_ari["epoch"] = epoch
 
-        logging.info("==> Best NMI score: " + str(best_nmi))
+            if mod > best_mod["value"]:
+                best_mod["value"] = mod
+                best_mod["epoch"] = epoch
+
+            clustering_filename = (
+                self.clustering_plot_file[:-4] + "_" + str(epoch) + ".png"
+            )
+            plot_functions.plot_clustering(
+                Z.detach().cpu().numpy(), r, clustering_filename
+            )
+
+        logging.info(
+            "=> Best Modularity score: "
+            + str(best_mod["value"])
+            + " at epoch "
+            + str(best_mod["epoch"])
+        )
+        logging.info(
+            "=> Best NMI score: "
+            + str(best_nmi["value"])
+            + " at epoch "
+            + str(best_nmi["epoch"])
+        )
+        logging.info(
+            "=> Best ARI score: "
+            + str(best_ari["value"])
+            + " at epoch "
+            + str(best_ari["epoch"])
+        )
 
         csv_writer.write_loss(loss_log, self.loss_log_file)
+        csv_writer.write_metrics(metrics_log, self.metrics_log_file)
 
         return self.data, att_tuple
 
-    def __train_network(self, gae, optimizer, epoch, scheduler):
+    def __train_network(self, gae, optimizer, epoch, scheduler, chose_centroids):
         gae.train()
         optimizer.zero_grad()
 
@@ -143,11 +226,15 @@ class GaeRunner:
             self.b_edge_index.edge_attr,
         )
 
-        if self.clusters_centroids is None:
+        if chose_centroids:
             self._find_centroids(Z)
             plot_functions.plot_centroids(
                 Z, self.clusters_centroids, self.centroids_plot_file
             )
+
+        if self.clusters_centroids is None:
+            logging.error("Centroids must be chosen first. Aborting!")
+            return None
 
         self.Q = clustering_loss.calculate_q(self.clusters_centroids, Z)
 
@@ -178,43 +265,21 @@ class GaeRunner:
         """
         Find the centroids using the selected algorithm.
         Args:
-            Z: The matrix representing the nodes AFTER the Encoding process.
+            Z: The matrix representing the embeddings AFTER the Encoding process.
         """
+        start = time.time()
 
-        if self.find_centroids_alg == "WFastGreedy":
-            self.clusters_centroids = weighted_modularity.select_centroids(
-                self.data, Z, "weight", self.n_clusters
-            )
-
-        elif self.find_centroids_alg == "Random":
-            self.clusters_centroids = random_seeds.select_centroids(Z, self.n_clusters)
-
-        elif self.find_centroids_alg == "BC":
-            self.clusters_centroids = betweenness_centrality.select_centroids(
-                self.data, Z, self.n_clusters
-            )
-
-        elif self.find_centroids_alg == "PageRank":
-            self.clusters_centroids = pagerank.select_centroids(
-                self.data, Z, self.n_clusters
-            )
-
-        elif self.find_centroids_alg == "KMeans":
-            self.clusters_centroids = kmeans.select_centroids(Z, self.n_clusters)
-
-        elif self.find_centroids_alg == "FastGreedy":
-            self.clusters_centroids = fastgreedy.select_centroids(
-                self.data, Z, self.n_clusters
-            )
-
-        elif self.find_centroids_alg == "KCore":
-            self.clusters_centroids = kcore.select_centroids(
-                self.data, Z, self.n_clusters
-            )
-
-        else:
+        if self.find_centroids_alg not in arguments_map.map:
             logging.error("FIND_CENTROIDS_ALG not known. Aborting...")
-            self.clusters_centroids = []
+            return
+
+        self.clusters_centroids = arguments_map.map[self.find_centroids_alg].select_centroids(
+            data=self.data, Z=Z, n_clusters=self.n_clusters
+        )
+
+        done = time.time()
+        msg = str("Finished centroids finding operation: " + str(done - start))
+        logging.info(msg)
 
         log_msg = "Centroids: " + str(self.clusters_centroids)
         logging.debug(log_msg)

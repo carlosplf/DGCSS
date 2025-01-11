@@ -1,9 +1,14 @@
 import argparse
 import logging
+
+from sklearn.metrics import cluster
 from runners import gae_runner
-from utils.graph_creator import get_planetoid_dataset
+from utils.graph_creator import get_dataset
 from utils.b_matrix import BMatrix
 
+
+PLANETOID_DATASETS = ["Cora", "Citeseer", "Pubmed"]
+TWITCH_DATASETS = ["Twitch"]
 
 parser = argparse.ArgumentParser()
 
@@ -16,7 +21,9 @@ parser.add_argument(
     "--find_centroids_alg",
     type=str,
     help="Define the method to find \
-        centroids. Options: KMeans, FastGreedy.",
+        centroids. Options: KMeans, FastGreedy, WFastGreedy, \
+        Random, BC (Betweenness Centrality), WBC (Weighted Betweenness Centrality), \
+        PageRank, KCore, EigenV (Eigen Vector), CC (Closeness Centrality)",
     default="KMeans",
 )
 parser.add_argument(
@@ -35,6 +42,14 @@ parser.add_argument(
     default="loss_log.csv",
 )
 parser.add_argument(
+    "-metrics",
+    "--metrics_log_file",
+    type=str,
+    help="Define the CSV file name to \
+        save metrics logs.",
+    default="metrics_log.csv",
+)
+parser.add_argument(
     "-cl",
     "--c_loss_gama",
     type=int,
@@ -49,12 +64,32 @@ parser.add_argument(
     default=10,
 )
 parser.add_argument(
-    "-cf",
+    "-hl",
+    "--hidden_layer",
+    type=int,
+    help="Define the Hidden Layer size.",
+    default=1024,
+)
+parser.add_argument(
+    "-ol",
+    "--output_layer",
+    type=int,
+    help="Define the Output Layer size.",
+    default=256,
+)
+parser.add_argument(
     "--centroids_plot_file",
     type=str,
     help="Define the PNG file name to \
-        save plot image.",
-    default="centroids_plot.png",
+        save the CENTROIDS plot image.",
+    default="plots/centroids_plot.png",
+)
+parser.add_argument(
+    "--clustering_plot_file",
+    type=str,
+    help="Define the PNG file name to \
+        save the CLUSTERING plot image.",
+    default="plots/clustering_plot.png",
 )
 
 
@@ -62,12 +97,28 @@ def run(
     epochs,
     find_centroids_alg,
     loss_log_file,
+    metrics_log_file,
     c_loss_gama,
     p_interval,
     centroids_plot_file,
+    clustering_plot_file,
     dataset_name,
+    hidden_layer,
+    output_layer
 ):
-    dataset = get_planetoid_dataset(name=dataset_name)
+    ds_type = None
+
+    if dataset_name in PLANETOID_DATASETS:
+        ds_type = "Planetoid"
+
+    if dataset_name in TWITCH_DATASETS:
+        ds_type = "Twitch"
+
+    if not ds_type:
+        logging.error("Dataset not known. Aborting...")
+        return None
+
+    dataset = get_dataset(name=dataset_name, ds_type=ds_type)
 
     data = dataset[0]
     num_classes = dataset.num_classes
@@ -93,7 +144,11 @@ def run(
         c_loss_gama=c_loss_gama,
         p_interval=p_interval,
         centroids_plot_file=centroids_plot_file,
+        clustering_plot_file=clustering_plot_file,
         loss_log_file=loss_log_file,
+        metrics_log_file=metrics_log_file,
+        hidden_layer=hidden_layer,
+        output_layer=output_layer
     )
 
     data, att_tuple = runner.run_training()
@@ -106,6 +161,12 @@ def run(
 if __name__ == "__main__":
     args = parser.parse_args()
 
+    logging.basicConfig(
+        format="%(asctime)s %(levelname)-8s %(message)s",
+        level=logging.INFO,
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
+
     if args.debug:
         logging.basicConfig(level=logging.DEBUG)
     else:
@@ -116,8 +177,12 @@ if __name__ == "__main__":
     p_interval = args.p_interval
     find_centroids_alg = args.find_centroids_alg
     loss_log_file = args.loss_log_file
+    metrics_log_file = args.metrics_log_file
     centroids_plot_file = args.centroids_plot_file
+    clustering_plot_file = args.clustering_plot_file
     dataset_name = args.dataset_name
+    hidden_layer = args.hidden_layer
+    output_layer = args.output_layer
 
     logging.info("Chosen dataset: " + str(dataset_name))
 
@@ -127,8 +192,12 @@ if __name__ == "__main__":
         epochs,
         find_centroids_alg,
         loss_log_file,
+        metrics_log_file,
         c_loss_gama,
         p_interval,
         centroids_plot_file,
+        clustering_plot_file,
         dataset_name,
+        hidden_layer,
+        output_layer
     )

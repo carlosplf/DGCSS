@@ -1,16 +1,13 @@
 import logging
-import networkx as nx
 from sklearn.metrics.pairwise import manhattan_distances
+from sklearn.metrics.pairwise import cosine_similarity
 
 
-def graph_manhattan_distances(X, consider_edges=False, mechanism="manhattan"):
+def graph_attr_distances(X, consider_edges=False, mechanism="manhattan"):
     """
     Calculate the manhattan distance from all N to N nodes in a graph.
 
     Args:
-
-        G (Networkx graph format): The graph to consider.
-
         X ([[]]): The nodes attributes values.
 
         consider_edges (bool): If True, distance between nodes that doesn't
@@ -32,9 +29,20 @@ def graph_manhattan_distances(X, consider_edges=False, mechanism="manhattan"):
     logging.info("Number of nodes: " + str(number_of_nodes))
     logging.info("Distance mechanism: " + mechanism)
 
-    # TODO: Implement other mechanisms to calculate distance.
+    """
+    According to the Networkx docs:
+    'This algorithm is not guaranteed to be correct if edge weights
+    are floating point numbers. As a workaround you can use integer
+    numbers by multiplying the relevant edge attributes by a convenient
+    constant factor (eg 100) and converting to integers.'
+    """
+
     if mechanism == "manhattan":
         distances = manhattan_distances(X, X)
+
+    elif mechanism == "cosine":
+        distances = cosine_similarity(X)
+
     else:
         logging.error("Distance mechanism not known. Aborting...")
         return None
@@ -42,28 +50,55 @@ def graph_manhattan_distances(X, consider_edges=False, mechanism="manhattan"):
     return distances
 
 
-def define_weights(G, distances, weight_name):
+def define_weights(G, distances, weight_name, multiplier="direct", scale=1000):
     """
     Define the weights in the Graph based on the distance between nodes.
     The weight is defined by 1/<distance>.
     Args:
-        G (networkx G): Original Graph.
+        G: Networkx Graph.
         distances ([[]]): Matrix NxN with all the distances between nodes.
         weight_name (str): Name of the field that will be stored in the Graph.
+        multiplier (str): "inverse" or "direct". Determine the correlation
+          between the distance and the weights.
+        scale (int): multiplier for weights.
     Return:
-        New networkx Graph with weights.
+        Graph attributes as a dict. {(tuple, tuple): value}
     """
+    logging.info(
+        str("Defining graph weights based on distances. Correlation: " + multiplier)
+    )
+
     g_attrs = {}
 
     number_of_nodes = len(distances)
 
-    for i in range(number_of_nodes):
-        for j in range(number_of_nodes):
-            if distances[i][j] == 0:
-                weight = 1
-            else:
-                weight = 1 / distances[i][j]
-            g_attrs[(i, j)] = {weight_name: weight}
+    # TODO: Need to review this.
+    if multiplier == "inverse":
+        for i in range(number_of_nodes):
+            for j in range(number_of_nodes):
+            
+                # If the edge doesn't exists, we don´t need to calculate distance.
+                if not G.has_edge(i, j):
+                    pass
 
-    nx.set_edge_attributes(G, g_attrs)
-    return G
+                distance = distances[i][j]
+
+                if distance <= 0.001:
+                    weight = 10000
+
+                else:
+                    weight = (1 / distance)
+
+                g_attrs[(i, j)] = {weight_name: weight}
+
+    elif multiplier == "direct":
+        for i in range(number_of_nodes):
+            for j in range(number_of_nodes):
+                weight = int(pow(distances[i][j], 4) * scale * 100)
+                g_attrs[(i, j)] = {weight_name: weight}
+
+    else:
+        logging.error("Invalid value for MULTIPLIER. Must be 'inverse' or 'direct'.")
+        return {}
+
+    return g_attrs

@@ -17,6 +17,7 @@ def update_clusters_centers(clusters_centroids, Q_grad, step_size=0.01):
     new_centroids = []
 
     for u in range(len(clusters_centroids)):
+        # TODO: Review this part. Is 'mean' the right option here?
         tmp_array = clusters_centroids[u] - (
             step_size * np.mean(Q_grad[u].detach().numpy())
         )

@@ -4,11 +4,12 @@ from torch_geometric.utils import to_networkx
 from utils import distance_calculator
 
 
-def select_centroids(data, Z, weights_name, n_clusters):
+def select_centroids(data=None, Z=None, n_clusters=0):
+    weights_name = "weight"
     logging.info("Using WEIGHTED Fastgreedy to find the centroids...")
     G = nx.Graph(to_networkx(data, node_attrs=["x"]))
 
-    distances = distance_calculator.graph_manhattan_distances(data.x)
+    distances = distance_calculator.graph_attr_distances(Z.detach().numpy())
     G = distance_calculator.define_weights(G, distances, weights_name)
 
     # using Fast Greedy
