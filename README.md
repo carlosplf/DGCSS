@@ -2,7 +2,7 @@
 
 :construction: **UNDER CONSTRUCTION** :construction:
 
-## O projeto
+## The Project
 
 Through a hypothetical-deductive methodology, this work aims to better understand the dependence on external clustering methods when Graph Neural Networks (GNNs) are used for community detection tasks. It also proposes alternatives to completely remove the reliance on an external clustering method in the use of GNNs for this type of task.
 
