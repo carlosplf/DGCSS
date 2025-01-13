@@ -13,6 +13,10 @@ from centroids_finder import (
 )
 
 
+# Function to calculate centroids will be called according to
+# this map. All the functions must have the same method name and arguments.
+# Example: select_centroids(data=None, Z=None, n_clusters=0)
+
 map = {
     "Random": random_seeds,
     "BC": betweenness_centrality,

@@ -278,8 +278,6 @@ class GaeRunner:
         )
 
         done = time.time()
+        
         msg = str("Finished centroids finding operation: " + str(done - start))
         logging.info(msg)
-
-        log_msg = "Centroids: " + str(self.clusters_centroids)
-        logging.debug(log_msg)
