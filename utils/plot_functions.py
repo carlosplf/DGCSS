@@ -19,7 +19,7 @@ def plot_centroids(all_nodes, centroids, filename=None):
     all_nodes_pca = pca.fit_transform(all_nodes.detach().numpy())
 
     pca = PCA(n_components=2)
-    centroids_pca = pca.fit_transform(centroids)
+    centroids_pca = pca.fit_transform(centroids.detach().numpy())
 
     all_nodes_x = [row[0] for row in all_nodes_pca]
     all_nodes_y = [row[1] for row in all_nodes_pca]

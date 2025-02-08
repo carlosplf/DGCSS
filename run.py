@@ -1,203 +1,109 @@
 import argparse
 import logging
+import sys
 
-from sklearn.metrics import cluster
 from runners import gae_runner
 from utils.graph_creator import get_dataset
 from utils.b_matrix import BMatrix
 
-
-PLANETOID_DATASETS = ["Cora", "Citeseer", "Pubmed"]
-TWITCH_DATASETS = ["Twitch"]
-
-parser = argparse.ArgumentParser()
-
-parser.add_argument(
-    "--epochs", type=int, help="Define number of EPOCHS for training.", default=10
-)
-parser.add_argument("-d", "--debug", action="store_true")
-parser.add_argument(
-    "-fa",
-    "--find_centroids_alg",
-    type=str,
-    help="Define the method to find \
-        centroids. Options: KMeans, FastGreedy, WFastGreedy, \
-        Random, BC (Betweenness Centrality), WBC (Weighted Betweenness Centrality), \
-        PageRank, KCore, EigenV (Eigen Vector), CC (Closeness Centrality)",
-    default="KMeans",
-)
-parser.add_argument(
-    "-ds",
-    "--dataset_name",
-    type=str,
-    help="Define the dataset to use.",
-    default="Cora",
-)
-parser.add_argument(
-    "-log",
-    "--loss_log_file",
-    type=str,
-    help="Define the CSV file name to \
-        save loss logs.",
-    default="loss_log.csv",
-)
-parser.add_argument(
-    "-metrics",
-    "--metrics_log_file",
-    type=str,
-    help="Define the CSV file name to \
-        save metrics logs.",
-    default="metrics_log.csv",
-)
-parser.add_argument(
-    "-cl",
-    "--c_loss_gama",
-    type=int,
-    help="Define the multiplier for Clustering Loss.",
-    default=20,
-)
-parser.add_argument(
-    "-pi",
-    "--p_interval",
-    type=int,
-    help="Define the interval for calculating P.",
-    default=10,
-)
-parser.add_argument(
-    "-hl",
-    "--hidden_layer",
-    type=int,
-    help="Define the Hidden Layer size.",
-    default=1024,
-)
-parser.add_argument(
-    "-ol",
-    "--output_layer",
-    type=int,
-    help="Define the Output Layer size.",
-    default=256,
-)
-parser.add_argument(
-    "--centroids_plot_file",
-    type=str,
-    help="Define the PNG file name to \
-        save the CENTROIDS plot image.",
-    default="plots/centroids_plot.png",
-)
-parser.add_argument(
-    "--clustering_plot_file",
-    type=str,
-    help="Define the PNG file name to \
-        save the CLUSTERING plot image.",
-    default="plots/clustering_plot.png",
-)
+# Define dataset names for each group
+PLANETOID_DATASETS = {"Cora", "Citeseer", "Pubmed"}
+TWITCH_DATASETS = {"Twitch"}
 
 
-def run(
-    epochs,
-    find_centroids_alg,
-    loss_log_file,
-    metrics_log_file,
-    c_loss_gama,
-    p_interval,
-    centroids_plot_file,
-    clustering_plot_file,
-    dataset_name,
-    hidden_layer,
-    output_layer
-):
-    ds_type = None
-
-    if dataset_name in PLANETOID_DATASETS:
-        ds_type = "Planetoid"
-
-    if dataset_name in TWITCH_DATASETS:
-        ds_type = "Twitch"
-
-    if not ds_type:
-        logging.error("Dataset not known. Aborting...")
-        return None
-
-    dataset = get_dataset(name=dataset_name, ds_type=ds_type)
-
-    data = dataset[0]
-    num_classes = dataset.num_classes
-    num_nodes = len(data.x)  # pyright: ignore
-
-    logging.info("Number of nodes: " + str(num_nodes))
-    logging.info("Number of classes: " + str(num_classes))
-
-    b_matrix = BMatrix(data)
-
-    logging.debug("B Matrix:")
-    logging.debug(str(b_matrix))
-
-    b_matrix.calc_t_order_neighbors(data, t=2)
-    b_matrix.create_edge_index()
-
-    runner = gae_runner.GaeRunner(
-        epochs=epochs,
-        data=data,
-        b_edge_index=b_matrix.edge_index,
-        n_clusters=num_classes,
-        find_centroids_alg=find_centroids_alg,
-        c_loss_gama=c_loss_gama,
-        p_interval=p_interval,
-        centroids_plot_file=centroids_plot_file,
-        clustering_plot_file=clustering_plot_file,
-        loss_log_file=loss_log_file,
-        metrics_log_file=metrics_log_file,
-        hidden_layer=hidden_layer,
-        output_layer=output_layer
+def parse_args():
+    """Parse command-line arguments."""
+    parser = argparse.ArgumentParser(description="Run GAE experiments.")
+    parser.add_argument("--epochs", type=int, default=10, help="Number of training epochs.")
+    parser.add_argument("-d", "--debug", action="store_true", help="Enable debug logging.")
+    parser.add_argument(
+        "-fa", "--find_centroids_alg",
+        type=str,
+        default="KMeans",
+        help=(
+            "Method to find centroids. Options: KMeans, FastGreedy, WFastGreedy, Random, "
+            "BC (Betweenness Centrality), WBC (Weighted Betweenness Centrality), "
+            "PageRank, KCore, EigenV (Eigen Vector), CC (Closeness Centrality)"
+        )
     )
+    parser.add_argument("-ds", "--dataset_name", type=str, default="Cora", help="Dataset name to use.")
+    parser.add_argument("-log", "--loss_log_file", type=str, default="loss_log.csv", help="CSV file for loss logs.")
+    parser.add_argument("-metrics", "--metrics_log_file", type=str, default="metrics_log.csv", help="CSV file for metrics logs.")
+    parser.add_argument("-cl", "--c_loss_gama", type=int, default=20, help="Multiplier for Clustering Loss.")
+    parser.add_argument("-pi", "--p_interval", type=int, default=10, help="Interval for calculating P.")
+    parser.add_argument("-hl", "--hidden_layer", type=int, default=1024, help="Hidden layer size.")
+    parser.add_argument("-ol", "--output_layer", type=int, default=256, help="Output layer size.")
+    parser.add_argument("--centroids_plot_file", type=str, default="plots/centroids_plot.png", help="PNG file for centroids plot.")
+    parser.add_argument("--clustering_plot_file", type=str, default="plots/clustering_plot.png", help="PNG file for clustering plot.")
+    return parser.parse_args()
 
-    data, att_tuple = runner.run_training()
 
-    logging.debug("Attention values: " + str(att_tuple))
-
-    return True
-
-
-if __name__ == "__main__":
-    args = parser.parse_args()
-
+def configure_logging(debug: bool):
+    """Configure the logging settings."""
+    log_level = logging.DEBUG if debug else logging.INFO
     logging.basicConfig(
         format="%(asctime)s %(levelname)-8s %(message)s",
-        level=logging.INFO,
+        level=log_level,
         datefmt="%Y-%m-%d %H:%M:%S",
     )
 
-    if args.debug:
-        logging.basicConfig(level=logging.DEBUG)
-    else:
-        logging.basicConfig(level=logging.INFO)
 
-    epochs = args.epochs
-    c_loss_gama = args.c_loss_gama
-    p_interval = args.p_interval
-    find_centroids_alg = args.find_centroids_alg
-    loss_log_file = args.loss_log_file
-    metrics_log_file = args.metrics_log_file
-    centroids_plot_file = args.centroids_plot_file
-    clustering_plot_file = args.clustering_plot_file
-    dataset_name = args.dataset_name
-    hidden_layer = args.hidden_layer
-    output_layer = args.output_layer
+def determine_dataset_type(dataset_name: str) -> str:
+    """Return the dataset type based on the dataset name."""
+    if dataset_name in PLANETOID_DATASETS:
+        return "Planetoid"
+    if dataset_name in TWITCH_DATASETS:
+        return "Twitch"
+    return None
 
-    logging.info("Chosen dataset: " + str(dataset_name))
 
-    logging.info("Considering %s epochs", epochs)
+def main():
+    args = parse_args()
+    configure_logging(args.debug)
 
-    run(
-        epochs,
-        find_centroids_alg,
-        loss_log_file,
-        metrics_log_file,
-        c_loss_gama,
-        p_interval,
-        centroids_plot_file,
-        clustering_plot_file,
-        dataset_name,
-        hidden_layer,
-        output_layer
+    logging.info("Chosen dataset: %s", args.dataset_name)
+    logging.info("Running for %s epochs", args.epochs)
+
+    ds_type = determine_dataset_type(args.dataset_name)
+    if ds_type is None:
+        logging.error("Dataset '%s' not recognized. Aborting...", args.dataset_name)
+        sys.exit(1)
+
+    # Load the dataset and log basic info
+    dataset = get_dataset(name=args.dataset_name, ds_type=ds_type)
+    data = dataset[0]
+    num_classes = dataset.num_classes
+    num_nodes = len(data.x)
+    logging.info("Number of nodes: %d", num_nodes)
+    logging.info("Number of classes: %d", num_classes)
+
+    # Create and process the BMatrix
+    b_matrix = BMatrix(data)
+    logging.debug("B Matrix: %s", str(b_matrix))
+    b_matrix.calc_t_order_neighbors(data, t=2)
+    b_matrix.create_edge_index()
+
+    # Instantiate the GAE runner with provided parameters
+    runner = gae_runner.GaeRunner(
+        epochs=args.epochs,
+        data=data,
+        b_edge_index=b_matrix.edge_index,
+        n_clusters=num_classes,
+        find_centroids_alg=args.find_centroids_alg,
+        c_loss_gama=args.c_loss_gama,
+        p_interval=args.p_interval,
+        centroids_plot_file=args.centroids_plot_file,
+        clustering_plot_file=args.clustering_plot_file,
+        loss_log_file=args.loss_log_file,
+        metrics_log_file=args.metrics_log_file,
+        hidden_layer=args.hidden_layer,
+        output_layer=args.output_layer
     )
+
+    # Run the training and retrieve any additional outputs (like attention values)
+    data, att_tuple = runner.run_training()
+    logging.debug("Attention values: %s", str(att_tuple))
+
+
+if __name__ == "__main__":
+    main()
