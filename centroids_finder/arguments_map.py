@@ -9,7 +9,8 @@ from centroids_finder import (
     weighted_betweenness_centrality,
     eigenvector_centrality,
     closeness_centrality,
-    weighted_closeness_centrality,
+    cosine_similarity_centrality,
+    cosine_similarity_density
 )
 
 
@@ -27,5 +28,6 @@ map = {
     "KCore": kcore,
     "EigenV": eigenvector_centrality,
     "CC": closeness_centrality,
-    "WCC": weighted_closeness_centrality,
+    "CSC": cosine_similarity_centrality,
+    "CSD": cosine_similarity_density
 }

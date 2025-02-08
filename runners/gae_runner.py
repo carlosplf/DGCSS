@@ -14,8 +14,8 @@ from centroids_finder import arguments_map
 warnings.simplefilter(action="ignore", category=FutureWarning)
 
 # Global hyperparameters
-LEARNING_RATE = 0.0001         # Learning rate for the GAE model
-LR_CHANGE_GAMMA = 0.5          # Learning rate decay factor
+LEARNING_RATE = 0.0001        # Learning rate for the GAE model
+LR_CHANGE_GAMMA = 0.9        # Learning rate decay factor
 LR_CHANGE_EPOCHS = 20          # Number of epochs between LR updates
 UPDATE_CLUSTERS_STEP_SIZE = 0.001  # Step size for updating cluster centroids
 RECHOSE_CENTROIDS = True       # Re-choose centroids if loss isn’t improving
@@ -61,8 +61,18 @@ class GaeRunner:
         hidden_channels = self.hidden_layer_size
         out_channels = self.output_layer_size
 
-        # Create a one-hidden-layer GAT model for the GAE.
-        gae = GAE(gat_model.GATLayer(in_channels, hidden_channels, out_channels))
+        # Create the multilayer GAT (recommended configuration for Cora)
+        gat = gat_model.MultiLayerGAT(
+            in_channels=in_channels,
+            hidden_channels=hidden_channels,
+            out_channels=out_channels,
+            num_layers=2,      # One hidden layer + output layer
+            heads=8,           # 8 attention heads in the hidden layer
+            dropout=0.4,       # Dropout rate
+            concat=True        # Concatenate outputs of the attention heads in the hidden layer
+        )
+        # Wrap the GAT in the GAE model
+        gae = GAE(gat)
         gae = gae.float().to(device)
 
         # Move data to device

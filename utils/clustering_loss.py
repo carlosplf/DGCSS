@@ -56,6 +56,7 @@ def calculate_p(Q, eps=1e-8):
     Returns:
         torch.Tensor: Target distribution P with shape (n_samples, n_clusters).
     """
+    logging.info("Calculating P...")
     # Compute the frequency for each cluster (f_j).
     f = torch.sum(Q, dim=0, keepdim=True)  # shape: (1, n_clusters)
     # Compute weighted Q (square Q and normalize by f_j)
