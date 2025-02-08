@@ -142,8 +142,9 @@ class GaeRunner:
                 best_mod = {"epoch": epoch, "value": metrics["mod"]}
 
             # Plot clustering results for this epoch
-            clustering_filename = f"{self.clustering_plot_file[:-4]}_{epoch}.png"
-            plot_functions.plot_clustering(Z.detach().cpu().numpy(), metrics["r"], clustering_filename)
+            if epoch % 5 == 0:
+                clustering_filename = f"{self.clustering_plot_file[:-4]}_{epoch}.png"
+                plot_functions.plot_clustering(Z.detach().cpu().numpy(), metrics["r"], clustering_filename)
 
         # Log best metrics
         logging.info(f"Best Modularity: {best_mod['value']} at epoch {best_mod['epoch']}")

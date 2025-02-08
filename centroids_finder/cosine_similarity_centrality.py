@@ -1,5 +1,3 @@
-# centroids_finder/cosine_similarity_centrality.py
-
 import numpy as np
 import torch
 import logging
