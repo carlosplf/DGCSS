@@ -14,12 +14,12 @@ from centroids_finder import arguments_map
 warnings.simplefilter(action="ignore", category=FutureWarning)
 
 # Global hyperparameters
-LEARNING_RATE = 0.0001        # Learning rate for the GAE model
-LR_CHANGE_GAMMA = 0.9        # Learning rate decay factor
-LR_CHANGE_EPOCHS = 20          # Number of epochs between LR updates
-UPDATE_CLUSTERS_STEP_SIZE = 0.001  # Step size for updating cluster centroids
-RECHOSE_CENTROIDS = True       # Re-choose centroids if loss isn’t improving
-NOT_IMPROVING_LIMIT = 100      # Max epochs of non-improvement before re-choosing centroids
+LEARNING_RATE = 0.0001              # Learning rate for the GAE model
+LR_CHANGE_GAMMA = 0.9               # Learning rate decay factor
+LR_CHANGE_EPOCHS = 100              # Number of epochs between LR updates
+UPDATE_CLUSTERS_STEP_SIZE = 0.001   # Step size for updating cluster centroids
+RECHOSE_CENTROIDS = True            # Re-choose centroids if loss isn’t improving
+NOT_IMPROVING_LIMIT = 100           # Max epochs of non-improvement before re-choosing centroids
 
 
 class GaeRunner:
@@ -66,10 +66,10 @@ class GaeRunner:
             in_channels=in_channels,
             hidden_channels=hidden_channels,
             out_channels=out_channels,
-            num_layers=2,      # One hidden layer + output layer
-            heads=8,           # 8 attention heads in the hidden layer
-            dropout=0.4,       # Dropout rate
-            concat=True        # Concatenate outputs of the attention heads in the hidden layer
+            num_layers=2,       # One hidden layer + output layer
+            heads=16,           # Number of attention heads in the hidden layer
+            dropout=0.2,        # Dropout rate
+            concat=True         # Concatenate outputs of the attention heads in the hidden layer
         )
         # Wrap the GAT in the GAE model
         gae = GAE(gat)
@@ -142,9 +142,9 @@ class GaeRunner:
                 best_mod = {"epoch": epoch, "value": metrics["mod"]}
 
             # Plot clustering results for this epoch
-            if epoch % 5 == 0:
-                clustering_filename = f"{self.clustering_plot_file[:-4]}_{epoch}.png"
-                plot_functions.plot_clustering(Z.detach().cpu().numpy(), metrics["r"], clustering_filename)
+            # if epoch % 5 == 0:
+            #     clustering_filename = f"{self.clustering_plot_file[:-4]}_{epoch}.png"
+            #    plot_functions.plot_clustering(Z.detach().cpu().numpy(), metrics["r"], clustering_filename)
 
         # Log best metrics
         logging.info(f"Best Modularity: {best_mod['value']} at epoch {best_mod['epoch']}")
@@ -170,39 +170,23 @@ class GaeRunner:
         gae.train()
         optimizer.zero_grad()
 
-        # Forward pass through the encoder
-        att_tuple, Z = gae.encode(
-            self.data.x.float(),
-            self.b_edge_index.edge_index,
-            self.b_edge_index.edge_attr,
-        )
+        # 1. Forward pass to obtain embeddings and attention tuple.
+        att_tuple, Z = self._forward_pass(gae)
 
-        # Choose centroids if required
-        if chose_centroids:
-            self._find_centroids(Z)
-            plot_functions.plot_centroids(Z, self.clusters_centroids, self.centroids_plot_file)
-
+        # 2. Handle centroid selection if required.
+        self._handle_centroids(Z, chose_centroids, epoch)
+        
+        # Check if centroids exist, otherwise abort the epoch.
         if self.clusters_centroids is None:
             logging.error("Centroids must be chosen first. Aborting epoch.")
             return 0, Z, att_tuple, 0, 0
 
-        # Compute soft assignments and target distribution
-        self.Q = clustering_loss.calculate_q(self.clusters_centroids, Z)
-        if epoch % self.p_interval == 0:
-            self.P = clustering_loss.calculate_p(self.Q)
+        # 3. Compute losses.
+        total_loss, clustering_loss_tensor, gae_loss_tensor = self._compute_losses(gae, Z, epoch)
 
-        clustering_loss_tensor, Q, P = clustering_loss.kl_div_loss(self.Q, self.P)
-        gae_loss_tensor = gae.recon_loss(Z, self.data.edge_index)
-        total_loss = gae_loss_tensor + self.c_loss_gama * clustering_loss_tensor
-
+        # 4. Backpropagation and update parameters.
         total_loss.backward()
-
-        # Update cluster centroids using gradient step if applicable
-        if not self.first_interaction and clustering_loss_tensor.item() != 0:
-            with torch.no_grad():
-                self.clusters_centroids -= UPDATE_CLUSTERS_STEP_SIZE * self.clusters_centroids.grad
-                self.clusters_centroids = self.clusters_centroids.detach().clone().requires_grad_()
-
+        self._update_centroids(clustering_loss_tensor)
         optimizer.step()
         scheduler.step()
         self.first_interaction = False
@@ -215,6 +199,57 @@ class GaeRunner:
             gae_loss_tensor.item(),
         )
 
+    def _forward_pass(self, gae):
+        """
+        Performs the forward pass using the encoder.
+        Returns:
+            att_tuple: Attention outputs from the encoder.
+            Z (torch.Tensor): Embeddings produced by the encoder.
+        """
+        att_tuple, Z = gae.encode(
+            self.data.x.float(),
+            self.b_edge_index.edge_index,
+            self.b_edge_index.edge_attr,
+        )
+        return att_tuple, Z
+
+    def _handle_centroids(self, Z, chose_centroids, epoch):
+        """
+        Selects centroids if required and plots them.
+        """
+        if chose_centroids:
+            self._find_centroids(Z)
+            plot_functions.plot_centroids(Z, self.clusters_centroids, self.centroids_plot_file)
+
+    def _compute_losses(self, gae, Z, epoch):
+        """
+        Computes the clustering and reconstruction losses.
+        Returns:
+            total_loss: Combined loss.
+            clustering_loss_tensor: Loss from the clustering (KL divergence).
+            gae_loss_tensor: Reconstruction loss.
+        """
+        # Compute soft assignments and update target distribution periodically.
+        self.Q = clustering_loss.calculate_q(self.clusters_centroids, Z)
+        if epoch % self.p_interval == 0:
+            self.P = clustering_loss.calculate_p(self.Q)
+
+        clustering_loss_tensor, Q, P = clustering_loss.kl_div_loss(self.Q, self.P)
+        gae_loss_tensor = gae.recon_loss(Z, self.data.edge_index)
+        total_loss = gae_loss_tensor + self.c_loss_gama * clustering_loss_tensor
+
+        return total_loss, clustering_loss_tensor, gae_loss_tensor
+
+    def _update_centroids(self, clustering_loss_tensor):
+        """
+        Updates the centroids using a gradient descent step if applicable.
+        """
+        if not self.first_interaction and clustering_loss_tensor.item() != 0:
+            with torch.no_grad():
+                self.clusters_centroids -= UPDATE_CLUSTERS_STEP_SIZE * self.clusters_centroids.grad
+                # Detach and set requires_grad for the next update.
+                self.clusters_centroids = self.clusters_centroids.detach().clone().requires_grad_()
+
     def _compute_metrics(self):
         """
         Computes clustering metrics based on the current soft assignments Q.
@@ -224,8 +259,8 @@ class GaeRunner:
             'nmi' : normalized mutual information,
             'ari' : adjusted Rand index.
         """
-        # Compute hard cluster assignments from Q
-        r = [np.argmax(line.detach().cpu().numpy()) for line in self.Q]
+        # Vectorized computation of hard cluster assignments from Q
+        r = torch.argmax(self.Q, dim=1).cpu().numpy()
         mod_score = modularity.calculate(self.data, r)
         nmi_score = normalized_mutual_info_score(self.data.y.tolist(), r)
         ari_score = adjusted_rand_score(self.data.y.tolist(), r)
