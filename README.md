@@ -20,6 +20,23 @@ Our goal is to establish DGCSD as a state-of-the-art method for deep graph clust
 - **Self-Supervision:** Uses detected seeds to iteratively refine clustering results.
 - **Modular Architecture:** Simplifies customization and extension of the algorithm for various applications.
 
+## Centroid Finder Algorithms
+
+Our project supports a variety of centroid selection algorithms that can be leveraged during training to initialize or update cluster centroids. You can choose the algorithm that best fits your data and use-case by specifying its corresponding key in the configuration. The available algorithms are:
+
+- **Random**: Uses random seeding to select centroids.
+- **BC (Betweenness Centrality)**: Selects centroids based on betweenness centrality.
+- **WBC (Weighted Betweenness Centrality)**: Similar to BC but accounts for edge weights.
+- **PageRank**: Applies the PageRank algorithm to determine influential nodes as centroids.
+- **KMeans**: Utilizes the K-Means clustering algorithm for centroid initialization.
+- **FastGreedy**: Employs the Fast Greedy algorithm for community detection.
+- **KCore**: Uses K-Core decomposition to identify core nodes as centroids.
+- **EigenV (Eigenvector Centrality)**: Chooses centroids based on eigenvector centrality.
+- **CC (Closeness Centrality)**: Selects centroids by measuring the closeness centrality.
+- **CSC (Cosine Similarity Centrality)**: Uses cosine similarity to evaluate centrality.
+- **CSD (Cosine Similarity Density)**: Determines centroids based on the density of cosine similarity.
+
+
 ## Installation
 
 ### Steps
