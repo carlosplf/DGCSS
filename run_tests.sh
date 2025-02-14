@@ -1,18 +1,18 @@
 #!/bin/bash
 
-NUMBER_OF_THREADS=1
-DATASET="Pubmed"
+NUMBER_OF_THREADS=2
+DATASET="Citeseer"
 
-for alg in CC; do
+for alg in Random Random Random; do
   FAIL=0
 
   echo "Starting" $alg "batch tests."
 
-  epochs=(124 124 124 124 124 124)
-  cl=(400 200 200 200 200 200)
+  epochs=(400 400 400 400 400 400)
+  cl=(20 20 10 10 100 100)
   pi=(10 10 10 10 10 10)
-  hl=(12000 2048 2048 2048 2048 2048)
-  ol=(2000 512 512 512 512 512)
+  hl=(64 64 64 64 64 64)
+  ol=(16 16 16 16 16 16)
 
   timestamp=$(date +%s)
   mkdir doc_tests/$alg\_$timestamp
