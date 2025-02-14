@@ -11,6 +11,8 @@ Cora/*
 Citeseer/*
 Pubmed/*
 
+*.csv
+
 # Performance logs folder
 logs/*
 doc_tests/*
