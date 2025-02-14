@@ -9,9 +9,14 @@ from centroids_finder import (
     weighted_betweenness_centrality,
     eigenvector_centrality,
     closeness_centrality,
-    weighted_closeness_centrality,
+    cosine_similarity_centrality,
+    cosine_similarity_density
 )
 
+
+# Function to calculate centroids will be called according to
+# this map. All the functions must have the same method name and arguments.
+# Example: select_centroids(data=None, Z=None, n_clusters=0)
 
 map = {
     "Random": random_seeds,
@@ -23,5 +28,6 @@ map = {
     "KCore": kcore,
     "EigenV": eigenvector_centrality,
     "CC": closeness_centrality,
-    "WCC": weighted_closeness_centrality,
+    "CSC": cosine_similarity_centrality,
+    "CSD": cosine_similarity_density
 }

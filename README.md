@@ -1,63 +1,53 @@
-# GAT Experiments
+# DGCSD (Deep Graph Clustering with Seed Detection)
 
-:construction: **UNDER CONSTRUCTION** :construction:
+## Overview
 
-## O projeto
+In this study, we propose **DGCSD**, a novel approach designed to push the boundaries of state-of-the-art performance in node clustering within complex networks. Traditional deep clustering methods often rely on external clustering algorithms to identify representative elements, but these methods can be hampered by the influence of initially formed groups and typically focus only on the content information of each example, neglecting the rich topological structure of the data.
 
-Through a hypothetical-deductive methodology, this work aims to better understand the dependence on external clustering methods when Graph Neural Networks (GNNs) are used for community detection tasks. It also proposes alternatives to completely remove the reliance on an external clustering method in the use of GNNs for this type of task.
+DGCSD addresses these limitations with a three-module design:
 
-This project implements the algorithm proposed in [Deep neighbor-aware embedding for node clustering in attributed graphs](https://www.sciencedirect.com/science/article/abs/pii/S0031320321004118), compares the obtained results with those presented in the original article, and suggests some variations to the algorithm.
+- **Embedding Module:** Utilizes a graph attentional network to capture topological information from the data.
+- **Seed Selection Module:** Detects representative nodes (seeds) in the graph, ensuring robust initial groupings.
+- **Self-Supervised Module:** Leverages the detected representative nodes to guide the clustering process and refine results.
 
-![Structure of the algorithm proposed in "Deep neighbor-aware embedding for node clustering in attributed graphs"](./img/deep-neighbor-model-img.png)
+Our goal is to establish DGCSD as a state-of-the-art method for deep graph clustering by effectively integrating both content and topological information to achieve superior clustering performance.
 
-### Tests and Variations:
 
-To date, the suggested tests and variations may include:
+## Features
 
-- New mechanisms for centroid detection;
-- New loss functions and weight variations;
-- Variations in the network structure and parameters;
-- New functions for class detection;
-- Various parametric tests;
+- **Enhanced Clustering Accuracy:** Mitigates the limitations of external clustering algorithms by directly integrating seed detection.
+- **Topological Awareness:** Incorporates graph attentional networks to capture essential structural information.
+- **Self-Supervision:** Uses detected seeds to iteratively refine clustering results.
+- **Modular Architecture:** Simplifies customization and extension of the algorithm for various applications.
 
-### Centroids via Community Detection
+## Centroid Finder Algorithms
 
-One of the approaches chosen for testing and comparison is community detection using algorithms like Fast Greedy, followed by mapping the centroids based on connectivity degree. This replaces KMeans as the initial centroid detection mechanism. Test results will be shared through this repository.
+Our project supports a variety of centroid selection algorithms that can be leveraged during training to initialize or update cluster centroids. You can choose the algorithm that best fits your data and use-case by specifying its corresponding key in the configuration. The available algorithms are:
 
-### Centroids via Seed Selection
+- **Random**: Uses random seeding to select centroids.
+- **BC (Betweenness Centrality)**: Selects centroids based on betweenness centrality.
+- **WBC (Weighted Betweenness Centrality)**: Similar to BC but accounts for edge weights.
+- **PageRank**: Applies the PageRank algorithm to determine influential nodes as centroids.
+- **KMeans**: Utilizes the K-Means clustering algorithm for centroid initialization.
+- **FastGreedy**: Employs the Fast Greedy algorithm for community detection.
+- **KCore**: Uses K-Core decomposition to identify core nodes as centroids.
+- **EigenV (Eigenvector Centrality)**: Chooses centroids based on eigenvector centrality.
+- **CC (Closeness Centrality)**: Selects centroids by measuring the closeness centrality.
+- **CSC (Cosine Similarity Centrality)**: Uses cosine similarity to evaluate centrality.
+- **CSD (Cosine Similarity Density)**: Determines centroids based on the density of cosine similarity.
 
-Another mechanism to be evaluated in this project is the Seed Expansion method for detecting initial centroids. This approach could eliminate the need for community detection. We believe this method may enhance the algorithm's overall efficiency, but we do not yet have results to confirm the quality of this approach.
 
-### Seed Selection Based on Node Attributes
+## Installation
 
-An approach to be implemented and tested involves seed selection based on node attributes. This could involve assigning distances between nodes based on attribute similarity, for example. A possible method is implementing a weighted K-Core that considers edge weights in subgraph selection. Other algorithms will be implemented and evaluated.
+### Steps
 
-## How to Run
+1. **Clone the Repository:**
 
-Create a Python virtual environment and install the necessary dependencies:
-
-```
-python3 -m venv ./env
-source ./env/bin/activate
-pip install -r requirements.txt
-```
-
-The `run.py` file executes the algorithm and has parameters that can adjust the network training. For more information, run:
-
-### Implemented Centroid Selectors::
-
-Currently, this project includes the implementation of the following algorithms for centroid selection:
-
-- KMeans;
-- Fast Greedy;
-- K-core;
-- PageRank;
-- Random;
-- Betweenness Centrality;
-- Weighted Betweenness Centrality;
-- Eigen Vector;
-- Closeness Centrality;
-- Weighted Closeness Centrality;
+   ```bash
+   git clone https://github.com/yourusername/DGCSD.git
+   cd DGCSD
+   pip install -r requirements.txt
+   python run.py --help
 
 
 ## Authors:
