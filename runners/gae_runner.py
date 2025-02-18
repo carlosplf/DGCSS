@@ -171,29 +171,11 @@ class GaeRunner:
         logging.info(f"Best ARI: {best_ari['value']} at epoch {best_ari['epoch']}")
         logging.info(f"Best ACC: {best_acc['value']} at epoch {best_acc['epoch']}")
 
-
-        # Write the row to the file 'results_table.tex'
-        self.__append_overleaf_row(
-            "results_table.txt", "DGCSD + " + self.find_centroids_alg, self.hidden_layer_size, self.c_loss_gama,
-                                   best_nmi, best_ari, best_mod)
         # Write logs to CSV files
         csv_writer.write_loss(loss_log, self.loss_log_file)
         csv_writer.write_metrics(metrics_log, self.metrics_log_file)
 
         return self.data, att_tuple
-
-    def __append_overleaf_row(self, file_path, method_name, param1, param2,
-                        best_nmi, best_ari, best_mod):
-        """
-        Appends a formatted Overleaf table row to the file.
-        """
-        row = (f"{method_name} & {param1} & {param2} & "
-            f"{best_nmi['value']:.3f} & {best_ari['value']:.3f} & {best_mod['value']:.3f} \\\\\n")
-        
-        # Append the row to the file.
-        with open(file_path, "a") as f:
-            f.write(row)
-
 
     def __train_epoch(self, gae, optimizer, scheduler, epoch, chose_centroids):
         """
