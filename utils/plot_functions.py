@@ -16,7 +16,7 @@ def plot_centroids(all_nodes, centroids, filename=None):
         (list of list): centroids (also nodes).
     """
     pca = PCA(n_components=2)
-    all_nodes_pca = pca.fit_transform(all_nodes.detach().numpy())
+    all_nodes_pca = pca.fit_transform(all_nodes.cpu().detach().numpy())
 
     pca = PCA(n_components=2)
     centroids_pca = pca.fit_transform(centroids.detach().numpy())

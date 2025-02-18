@@ -2,6 +2,8 @@ import logging
 
 import torch
 import networkx as nx
+import numpy as np
+from scipy.optimize import linear_sum_assignment
 
 
 logger = logging.getLogger(__name__)
@@ -82,3 +84,31 @@ def check_size_of_groups(G, x):
             valid_size = False
 
     return valid_size
+
+def clustering_accuracy(y_true, y_pred):
+    """
+    Compute clustering accuracy using the Hungarian algorithm.
+    
+    Args:
+        y_true (np.ndarray): Ground truth labels.
+        y_pred (np.ndarray): Predicted cluster labels.
+    
+    Returns:
+        float: Accuracy, in [0, 1].
+    """
+    y_true = np.array(y_true)
+    y_pred = np.array(y_pred)
+    # Ensure labels start at 0
+    labels_true = np.unique(y_true)
+    labels_pred = np.unique(y_pred)
+    D = max(y_pred.max(), y_true.max()) + 1
+    # Build contingency matrix (rows: predicted, columns: true)
+    contingency_matrix = np.zeros((D, D), dtype=np.int64)
+    for i in range(len(y_true)):
+        contingency_matrix[y_pred[i], y_true[i]] += 1
+
+    # Solve the linear assignment problem (Hungarian algorithm)
+    row_ind, col_ind = linear_sum_assignment(-contingency_matrix)
+    # Sum the matched entries for the best accuracy
+    total = contingency_matrix[row_ind, col_ind].sum()
+    return total / len(y_true)

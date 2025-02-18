@@ -28,7 +28,7 @@ def calculate_q(cluster_centroids, Z, alpha=1.0):
     # Expand dimensions so that:
     #   Z becomes (n_samples, 1, embedding_dim)
     #   cluster_centroids becomes (1, n_clusters, embedding_dim)
-    diff = Z.unsqueeze(1) - cluster_centroids.unsqueeze(0)  # (n_samples, n_clusters, embedding_dim)
+    diff = Z.cpu().unsqueeze(1) - cluster_centroids.unsqueeze(0)  # (n_samples, n_clusters, embedding_dim)
     distances = torch.sum(diff ** 2, dim=2)  # (n_samples, n_clusters)
     
     # Compute the numerator of Q using the Student’s t-distribution kernel.
