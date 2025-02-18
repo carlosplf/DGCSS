@@ -3,10 +3,11 @@ import torch
 import numpy as np
 import logging
 import time
+import random
 from torch_geometric.nn import GAE
 from gat_model import gat_model
 from sklearn.metrics.cluster import normalized_mutual_info_score, adjusted_rand_score
-from utils import clustering_loss, csv_writer, plot_functions
+from utils import clustering_loss, csv_writer, plot_functions, utils
 from metrics import modularity
 from centroids_finder import arguments_map
 
@@ -15,10 +16,10 @@ warnings.simplefilter(action="ignore", category=FutureWarning)
 
 # Global hyperparameters
 LEARNING_RATE = 0.0001              # Learning rate for the GAE model
-LR_CHANGE_GAMMA = 0.9               # Learning rate decay factor
-LR_CHANGE_EPOCHS = 100              # Number of epochs between LR updates
-UPDATE_CLUSTERS_STEP_SIZE = 0.001   # Step size for updating cluster centroids
-RECHOSE_CENTROIDS = True            # Re-choose centroids if loss isn’t improving
+LR_CHANGE_GAMMA = 0.95              # Learning rate decay factor
+LR_CHANGE_EPOCHS = 50               # Number of epochs between LR updates
+UPDATE_CLUSTERS_STEP_SIZE = 0.1     # Step size for updating cluster centroids
+RECHOSE_CENTROIDS = False           # Re-choose centroids if loss isn’t improving
 NOT_IMPROVING_LIMIT = 100           # Max epochs of non-improvement before re-choosing centroids
 
 
@@ -46,6 +47,18 @@ class GaeRunner:
         self.clusters_centroids = None
         self.first_interaction = True
 
+    def set_seed(self, seed=42):
+        random.seed(seed)
+        np.random.seed(seed)
+        torch.manual_seed(seed)
+        # If you are using CUDA:
+        if torch.cuda.is_available():
+            torch.cuda.manual_seed(seed)
+            torch.cuda.manual_seed_all(seed)
+        # For deterministic behavior (may affect performance)
+        torch.backends.cudnn.deterministic = True
+        torch.backends.cudnn.benchmark = False
+
     def __print_values(self):
         logging.info(f"C_LOSS_GAMMA: {self.c_loss_gama}")
         logging.info(f"LEARNING_RATE: {LEARNING_RATE}")
@@ -60,6 +73,9 @@ class GaeRunner:
         in_channels = self.data.x.shape[1]
         hidden_channels = self.hidden_layer_size
         out_channels = self.output_layer_size
+        
+        # Comment this to have random seed
+        self.set_seed()
 
         # Create the multilayer GAT (recommended configuration for Cora)
         gat = gat_model.MultiLayerGAT(
@@ -103,6 +119,7 @@ class GaeRunner:
         best_nmi = {"epoch": 0, "value": 0.0}
         best_ari = {"epoch": 0, "value": 0.0}
         best_mod = {"epoch": 0, "value": 0.0}
+        best_acc = {"epoch": 0, "value": 0.0}
         loss_not_improving_counter = 0
         past_loss = float("inf")
         att_tuple = None
@@ -110,7 +127,7 @@ class GaeRunner:
         # Epoch training loop
         for epoch in range(self.epochs):
             # Re-choose centroids if first epoch or if loss has not improved for a while
-            chose_centroids = (epoch == 0 or loss_not_improving_counter >= NOT_IMPROVING_LIMIT) and RECHOSE_CENTROIDS
+            chose_centroids = (epoch == 0 or (loss_not_improving_counter >= NOT_IMPROVING_LIMIT and RECHOSE_CENTROIDS))
             if chose_centroids:
                 loss_not_improving_counter = 0
 
@@ -130,8 +147,8 @@ class GaeRunner:
 
             # Compute and log clustering metrics
             metrics = self._compute_metrics()
-            metrics_log.append([epoch, metrics["mod"], metrics["nmi"], metrics["ari"]])
-            logging.info(f"Epoch {epoch} - Modularity: {metrics['mod']}, NMI: {metrics['nmi']}, ARI: {metrics['ari']}")
+            metrics_log.append([epoch, metrics["mod"], metrics["nmi"], metrics["ari"], metrics["acc"]])
+            logging.info(f"Epoch {epoch} - Modularity: {metrics['mod']}, NMI: {metrics['nmi']}, ARI: {metrics['ari']}, ACC: {metrics['acc']}")
 
             # Update best scores
             if metrics["nmi"] > best_nmi["value"]:
@@ -140,22 +157,43 @@ class GaeRunner:
                 best_ari = {"epoch": epoch, "value": metrics["ari"]}
             if metrics["mod"] > best_mod["value"]:
                 best_mod = {"epoch": epoch, "value": metrics["mod"]}
+            if metrics["acc"] > best_acc["value"]:
+                best_acc = {"epoch": epoch, "value": metrics["acc"]}
 
             # Plot clustering results for this epoch
-            # if epoch % 5 == 0:
+            # if epoch % 100 == 0:
             #     clustering_filename = f"{self.clustering_plot_file[:-4]}_{epoch}.png"
-            #    plot_functions.plot_clustering(Z.detach().cpu().numpy(), metrics["r"], clustering_filename)
+            #     plot_functions.plot_clustering(Z.detach().cpu().numpy(), metrics["r"], clustering_filename)
 
         # Log best metrics
         logging.info(f"Best Modularity: {best_mod['value']} at epoch {best_mod['epoch']}")
         logging.info(f"Best NMI: {best_nmi['value']} at epoch {best_nmi['epoch']}")
         logging.info(f"Best ARI: {best_ari['value']} at epoch {best_ari['epoch']}")
+        logging.info(f"Best ACC: {best_acc['value']} at epoch {best_acc['epoch']}")
 
+
+        # Write the row to the file 'results_table.tex'
+        self.__append_overleaf_row(
+            "results_table.txt", "DGCSD + " + self.find_centroids_alg, self.hidden_layer_size, self.c_loss_gama,
+                                   best_nmi, best_ari, best_mod)
         # Write logs to CSV files
         csv_writer.write_loss(loss_log, self.loss_log_file)
         csv_writer.write_metrics(metrics_log, self.metrics_log_file)
 
         return self.data, att_tuple
+
+    def __append_overleaf_row(self, file_path, method_name, param1, param2,
+                        best_nmi, best_ari, best_mod):
+        """
+        Appends a formatted Overleaf table row to the file.
+        """
+        row = (f"{method_name} & {param1} & {param2} & "
+            f"{best_nmi['value']:.3f} & {best_ari['value']:.3f} & {best_mod['value']:.3f} \\\\\n")
+        
+        # Append the row to the file.
+        with open(file_path, "a") as f:
+            f.write(row)
+
 
     def __train_epoch(self, gae, optimizer, scheduler, epoch, chose_centroids):
         """
@@ -258,13 +296,15 @@ class GaeRunner:
             'mod' : modularity score,
             'nmi' : normalized mutual information,
             'ari' : adjusted Rand index.
+            'acc' : clustering accuracy.
         """
         # Vectorized computation of hard cluster assignments from Q
         r = torch.argmax(self.Q, dim=1).cpu().numpy()
         mod_score = modularity.calculate(self.data, r)
         nmi_score = normalized_mutual_info_score(self.data.y.tolist(), r)
         ari_score = adjusted_rand_score(self.data.y.tolist(), r)
-        return {"r": r, "mod": mod_score, "nmi": nmi_score, "ari": ari_score}
+        acc_score = utils.clustering_accuracy(self.data.y.tolist(), r)
+        return {"r": r, "mod": mod_score, "nmi": nmi_score, "ari": ari_score, "acc": acc_score}
 
     def _find_centroids(self, Z):
         """

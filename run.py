@@ -9,6 +9,7 @@ from utils.b_matrix import BMatrix
 # Define dataset names for each group
 PLANETOID_DATASETS = {"Cora", "Citeseer", "Pubmed"}
 TWITCH_DATASETS = {"Twitch"}
+B_MATRIX_DEGREE = 3
 
 
 def parse_args():
@@ -31,8 +32,8 @@ def parse_args():
     parser.add_argument("-metrics", "--metrics_log_file", type=str, default="metrics_log.csv", help="CSV file for metrics logs.")
     parser.add_argument("-cl", "--c_loss_gama", type=int, default=20, help="Multiplier for Clustering Loss.")
     parser.add_argument("-pi", "--p_interval", type=int, default=10, help="Interval for calculating P.")
-    parser.add_argument("-hl", "--hidden_layer", type=int, default=1024, help="Hidden layer size.")
-    parser.add_argument("-ol", "--output_layer", type=int, default=256, help="Output layer size.")
+    parser.add_argument("-hl", "--hidden_layer", type=int, default=64, help="Hidden layer size.")
+    parser.add_argument("-ol", "--output_layer", type=int, default=16, help="Output layer size.")
     parser.add_argument("--centroids_plot_file", type=str, default="plots/centroids_plot.png", help="PNG file for centroids plot.")
     parser.add_argument("--clustering_plot_file", type=str, default="plots/clustering_plot.png", help="PNG file for clustering plot.")
     return parser.parse_args()
@@ -80,7 +81,7 @@ def main():
     # Create and process the BMatrix
     b_matrix = BMatrix(data)
     logging.debug("B Matrix: %s", str(b_matrix))
-    b_matrix.calc_t_order_neighbors(data, t=2)
+    b_matrix.calc_t_order_neighbors(data, t=B_MATRIX_DEGREE)
     b_matrix.create_edge_index()
 
     # Instantiate the GAE runner with provided parameters

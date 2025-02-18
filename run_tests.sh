@@ -1,16 +1,16 @@
 #!/bin/bash
 
-NUMBER_OF_THREADS=2
+NUMBER_OF_THREADS=1
 DATASET="Citeseer"
 
-for alg in Random Random Random; do
+for alg in BC BC BC BC BC BC BC BC; do
   FAIL=0
 
   echo "Starting" $alg "batch tests."
 
   epochs=(400 400 400 400 400 400)
-  cl=(20 20 10 10 100 100)
-  pi=(10 10 10 10 10 10)
+  cl=(10 10 10 10 10 10)
+  pi=(4 4 4 10 10 10)
   hl=(64 64 64 64 64 64)
   ol=(16 16 16 16 16 16)
 
