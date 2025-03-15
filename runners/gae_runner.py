@@ -15,7 +15,7 @@ from centroids_finder import arguments_map
 warnings.simplefilter(action="ignore", category=FutureWarning)
 
 # Global hyperparameters
-LEARNING_RATE = 0.0001              # Learning rate for the GAE model
+LEARNING_RATE = 0.00005             # Learning rate for the GAE model
 LR_CHANGE_GAMMA = 0.95              # Learning rate decay factor
 LR_CHANGE_EPOCHS = 50               # Number of epochs between LR updates
 UPDATE_CLUSTERS_STEP_SIZE = 0.1     # Step size for updating cluster centroids
@@ -75,7 +75,7 @@ class GaeRunner:
         out_channels = self.output_layer_size
         
         # Comment this to have random seed
-        self.set_seed()
+        # self.set_seed()
 
         # Create the multilayer GAT (recommended configuration for Cora)
         gat = gat_model.MultiLayerGAT(
@@ -161,9 +161,9 @@ class GaeRunner:
                 best_acc = {"epoch": epoch, "value": metrics["acc"]}
 
             # Plot clustering results for this epoch
-            # if epoch % 100 == 0:
-            #     clustering_filename = f"{self.clustering_plot_file[:-4]}_{epoch}.png"
-            #     plot_functions.plot_clustering(Z.detach().cpu().numpy(), metrics["r"], clustering_filename)
+            if epoch % 100 == 0:
+                clustering_filename = f"{self.clustering_plot_file[:-4]}_{epoch}.png"
+                plot_functions.plot_clustering(Z.detach().cpu().numpy(), metrics["r"], clustering_filename)
 
         # Log best metrics
         logging.info(f"Best Modularity: {best_mod['value']} at epoch {best_mod['epoch']}")

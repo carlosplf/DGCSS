@@ -10,6 +10,11 @@ data/*
 Cora/*
 Citeseer/*
 Pubmed/*
+CS/*
+Photo/*
+Physics/*
+processed/*
+raw/*
 
 *.csv
 

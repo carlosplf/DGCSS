@@ -9,6 +9,9 @@ from utils.b_matrix import BMatrix
 # Define dataset names for each group
 PLANETOID_DATASETS = {"Cora", "Citeseer", "Pubmed"}
 TWITCH_DATASETS = {"Twitch"}
+COAUTHOR_DATASETS = {"CS", "Physics"}
+ACTOR_DATASET = {"Actor"}
+AMAZON_DATASETS = {"Computers", "Photo"}
 B_MATRIX_DEGREE = 3
 
 
@@ -55,6 +58,12 @@ def determine_dataset_type(dataset_name: str) -> str:
         return "Planetoid"
     if dataset_name in TWITCH_DATASETS:
         return "Twitch"
+    if dataset_name in COAUTHOR_DATASETS:
+        return "Coauthor"
+    if dataset_name in ACTOR_DATASET:
+        return "Actor"
+    if dataset_name in AMAZON_DATASETS:
+        return "Amazon"
     return None
 
 
@@ -81,8 +90,10 @@ def main():
     # Create and process the BMatrix
     b_matrix = BMatrix(data)
     logging.debug("B Matrix: %s", str(b_matrix))
+    logging.info("Calculating B Matrix...")
     b_matrix.calc_t_order_neighbors(data, t=B_MATRIX_DEGREE)
     b_matrix.create_edge_index()
+    logging.info("Done.")
 
     # Instantiate the GAE runner with provided parameters
     runner = gae_runner.GaeRunner(

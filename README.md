@@ -12,6 +12,8 @@ DGCSD addresses these limitations with a three-module design:
 
 Our goal is to establish DGCSD as a state-of-the-art method for deep graph clustering by effectively integrating both content and topological information to achieve superior clustering performance.
 
+![DGCSD Architecture](/img/dgcsd-v2.png)
+
 
 ## Features
 
@@ -57,8 +59,8 @@ Our project supports a variety of centroid selection algorithms that can be leve
 
 ## Authors:
 
-Alan Demétrius Baria Valejo
-
 Carlos Pereira Lopes Filho
 
 Guilherme Henrique Messias
+
+Alan Demétrius Baria Valejo
