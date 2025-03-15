@@ -1,17 +1,17 @@
 #!/bin/bash
 
 NUMBER_OF_THREADS=1
-DATASET="Citeseer"
+DATASET="Photo"
 
-for alg in BC BC BC BC BC BC BC BC; do
+for alg in BC BC BC CC CC CC; do
   FAIL=0
 
   echo "Starting" $alg "batch tests."
 
-  epochs=(400 400 400 400 400 400)
-  cl=(10 10 10 10 10 10)
-  pi=(4 4 4 10 10 10)
-  hl=(64 64 64 64 64 64)
+  epochs=(1200 1200 400 400 400 400)
+  cl=(20 20 10 10 10 10)
+  pi=(10 10 4 10 10 10)
+  hl=(128 128 64 64 64 64)
   ol=(16 16 16 16 16 16)
 
   timestamp=$(date +%s)
