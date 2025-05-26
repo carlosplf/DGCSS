@@ -1,8 +1,8 @@
-# DGCSD (Deep Graph Clustering with Seed Detection)
+# DGCSS (Deep Graph Clustering with Seed Selection)
 
 ## Overview
 
-In this study, we propose **DGCSD**, a novel approach designed to push the boundaries of state-of-the-art performance in node clustering within complex networks. Traditional deep clustering methods often rely on external clustering algorithms to identify representative elements, but these methods can be hampered by the influence of initially formed groups and typically focus only on the content information of each example, neglecting the rich topological structure of the data.
+In this study, we propose **DGCSS**, a novel approach designed to push the boundaries of state-of-the-art performance in node clustering within complex networks. Traditional deep clustering methods often rely on external clustering algorithms to identify representative elements, but these methods can be hampered by the influence of initially formed groups and typically focus only on the content information of each example, neglecting the rich topological structure of the data.
 
 DGCSD addresses these limitations with a three-module design:
 
@@ -10,7 +10,7 @@ DGCSD addresses these limitations with a three-module design:
 - **Seed Selection Module:** Detects representative nodes (seeds) in the graph, ensuring robust initial groupings.
 - **Self-Supervised Module:** Leverages the detected representative nodes to guide the clustering process and refine results.
 
-Our goal is to establish DGCSD as a state-of-the-art method for deep graph clustering by effectively integrating both content and topological information to achieve superior clustering performance.
+Our goal is to establish DGCSS as a state-of-the-art method for deep graph clustering by effectively integrating both content and topological information to achieve superior clustering performance.
 
 ![DGCSD Architecture](/img/dgcsd-v2.png)
 
