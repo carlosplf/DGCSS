@@ -4,7 +4,7 @@
 
 In this study, we propose **DGCSS**, a novel approach designed to push the boundaries of state-of-the-art performance in node clustering within complex networks. Traditional deep clustering methods often rely on external clustering algorithms to identify representative elements, but these methods can be hampered by the influence of initially formed groups and typically focus only on the content information of each example, neglecting the rich topological structure of the data.
 
-DGCSD addresses these limitations with a three-module design:
+DGCSS addresses these limitations with a three-module design:
 
 - **Embedding Module:** Utilizes a graph attentional network to capture topological information from the data.
 - **Seed Selection Module:** Detects representative nodes (seeds) in the graph, ensuring robust initial groupings.
@@ -12,7 +12,7 @@ DGCSD addresses these limitations with a three-module design:
 
 Our goal is to establish DGCSS as a state-of-the-art method for deep graph clustering by effectively integrating both content and topological information to achieve superior clustering performance.
 
-![DGCSD Architecture](/img/dgcsd-v2.png)
+![DGCSS Architecture](/img/dgcsd-v2.png)
 
 
 ## Features
@@ -51,8 +51,8 @@ Our project supports a variety of centroid selection algorithms that can be leve
 1. **Clone the Repository:**
 
    ```bash
-   git clone https://github.com/yourusername/DGCSD.git
-   cd DGCSD
+   git clone https://github.com/yourusername/DGCSS.git
+   cd DGCSS
    pip install -r requirements.txt
    python run.py --help
 
